@@ -1,0 +1,61 @@
+html {
+	font-family: Arial;
+	font-size: 14px;
+}
+
+h1 {
+	font-size: 42px;
+	text-align: center;
+	background-color: violet;
+	margin: 35px 15%;
+	padding: 5px 5px;
+	border: 5px solid purple;
+}
+
+h1:hover {
+	letter-spacing: 30px;
+	border: 5px dashed purple;
+	text-shadow: 10px 5px 10px black;
+}
+
+body {
+	border: 3px solid navy;
+	padding: 5px;
+}
+
+@media (min-width: 961px) {
+	body {
+		border: 3px solid skyblue;
+	}
+}
+
+img {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 40px;
+	border: 5px solid grey;
+}
+
+#pacman:hover {
+	letter-spacing: 20px;
+	text-align: right;
+}
+
+#inputboxes {
+	font-family: monospace;
+	color: navy;
+}
+
+img:hover {
+	opacity: .3;
+}
+
+div {
+	line-height: 30px;
+}
+
+hr + div { /* select div only if it comes directly after a sister hr */
+	font-size: 10px;
+	line-height: 10px;
+}
