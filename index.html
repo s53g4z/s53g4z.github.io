@@ -5,14 +5,17 @@
 		<title>127_0_0_2 page</title>
 		<link rel="icon" href="images/favicon.png">
 		<link rel="stylesheet" href="styles/style.css">
+		<script src="scripts/script.js" defer></script>
 	</head>
 <body>
-	<div id="top"></div>
+	<div id="mousecoordinates">
+	Your cursor is at ...
+	</div>
 	<h1>Page Title</h1>
-	<a href="https://html.duckduckgo.com/html" target="_blank">
+	<a id="imglink" href="tic.html" target="_blank">
 	<img src="images/img1.png" alt="image 1">
 	</a>
-	<div><br>The image above shows an integral expression.
+	<div id="maincontent"><br>The image above shows an integral expression.
 		(The answer is <strong>x<sup>3</sup>y + C</strong>.)
 		<ul>
 			<li>Since the integration will be done with respect to x,
@@ -28,7 +31,8 @@
 		<br>Enabled input  box:<input type="text">
 		<br>Disabled input box:<input type="text" disabled>
 	</div>
-	<hr>
+	<hr id="pactoggle">
+	<button id="spawncanvas"></button>
 	<div id="pacman">
 		a52dec 0.7.4-11<br>
 		aalib 1.4rc5-14<br>
@@ -420,6 +424,6 @@
 		zlib 1:1.2.11-4<br>
 		zstd 1.4.5-1<br>
 	</div>
-	<pre>Back to <a href="#top">top</a>.</pre>
+	<pre id="topbtn">Back to <a id="toplink" href="#top">top</a>.</pre>
 </body>
 </html>

@@ -21,6 +21,7 @@ h1:hover {
 body {
 	border: 3px solid navy;
 	padding: 5px;
+	margin: 0px;
 }
 
 @media (min-width: 961px) {
@@ -31,10 +32,13 @@ body {
 
 img {
 	display: block;
-	margin-left: auto;
-	margin-right: auto;
-	margin-top: 40px;
 	border: 5px solid grey;
+}
+
+#imglink {
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 #pacman:hover {
@@ -58,4 +62,9 @@ div {
 hr + div { /* select div only if it comes directly after a sister hr */
 	font-size: 10px;
 	line-height: 10px;
+}
+
+hr {
+	height: 10px;
+	border: 5px solid black;
 }

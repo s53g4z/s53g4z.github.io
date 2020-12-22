@@ -1,0 +1,15 @@
+body {
+	margin: 5px;
+	overflow: hidden;
+	font-family: "Arial";
+}
+
+div {
+	width: 20vh;
+	height: 20vh;
+	display: inline-block;
+	border: 5px solid black;
+	margin: 0px;
+	padding: 10px;
+	text-align: center;
+}
