@@ -32,9 +32,15 @@ function initializeSearchBox() {
 		let url = `https://api.tumblr.com/v2/blog/${input.value}.tumblr.com/avatar/128`;
 		let promBlob = processFetchProm(fetch(url));
 		processPromBlob(promBlob).catch((e) => {
-			respdiv.innerText = "Not found. Try another name?";
-			if (e.message != 404)
+			if (e.message == 404)
+				respdiv.innerText = "Not found. Try another name?";
+			else if (e.message == 403)
+				respdiv.innerText = "403 Forbidden :(";
+			else {
+				respdiv.innerText = "Unexpected error occurred:"
+				respdiv.innerText += " " + e.message.toString();
 				console.log(e.message);
+			}
 		});
 		input.focus();  // search again?
 		input.select();  // ibid
