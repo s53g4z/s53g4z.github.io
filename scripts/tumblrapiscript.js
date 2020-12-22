@@ -6,6 +6,7 @@ function initializeSearchBox() {
 	let respdiv = document.getElementById("resp");
 	btn.onclick = () => {
 		let input = document.getElementById("input1");
+		respdiv.innerHTML = "";
 		fetch(`https://api.tumblr.com/v2/blog/${input.value}.tumblr.com/avatar/128`)
 		.then((req) => {
 			if (req.ok && req.status == 200) {
@@ -24,6 +25,8 @@ function initializeSearchBox() {
 			if (e.message != 404)
 				console.log(e.message);
 		});
+		input.focus();
+		input.select();
 	}
 	document.getElementById("input1").onkeyup = (e) => {
 		if (e.keyCode == 13)
