@@ -27,6 +27,8 @@ function errHandler(e) {
 	let respdiv = document.getElementById("resp");
 	if (e.message == 404)
 		respdiv.innerText = "Not found. Try another name?";
+	else if (e.message == 401)
+		respdiv.innerText = "401 Unauthorized :(";
 	else if (e.message == 403)
 		respdiv.innerText = "403 Forbidden :(";
 	else {
