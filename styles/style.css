@@ -68,3 +68,13 @@ hr {
 	height: 10px;
 	border: 5px solid black;
 }
+
+#linkbar {
+	border: 2px solid navy;
+	margin-bottom: 40px;
+}
+
+.links {
+	margin-left: 10px;
+	margin-right: 10px;
+}
