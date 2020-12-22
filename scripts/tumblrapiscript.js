@@ -23,6 +23,18 @@ function processPromBlob(promBlob) {
 	});
 }
 
+function errHandler(e) {
+	let respdiv = document.getElementById("resp");
+	if (e.message == 404)
+		respdiv.innerText = "Not found. Try another name?";
+	else if (e.message == 403)
+		respdiv.innerText = "403 Forbidden :(";
+	else {
+		respdiv.innerText = "Unexpected error occurred:"
+		respdiv.innerText += " " + e.message.toString();
+	}
+}
+
 function initializeSearchBox() {
 	let btn = document.getElementById("go");
 	btn.onclick = () => {  // clicked, now go fetch the profile picture
@@ -31,17 +43,7 @@ function initializeSearchBox() {
 		let input = document.getElementById("input1");
 		let url = `https://api.tumblr.com/v2/blog/${input.value}.tumblr.com/avatar/128`;
 		let promBlob = processFetchProm(fetch(url));
-		processPromBlob(promBlob).catch((e) => {
-			if (e.message == 404)
-				respdiv.innerText = "Not found. Try another name?";
-			else if (e.message == 403)
-				respdiv.innerText = "403 Forbidden :(";
-			else {
-				respdiv.innerText = "Unexpected error occurred:"
-				respdiv.innerText += " " + e.message.toString();
-				console.log(e.message);
-			}
-		});
+		processPromBlob(promBlob).catch(errHandler);
 		input.focus();  // search again?
 		input.select();  // ibid
 	}
