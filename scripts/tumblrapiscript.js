@@ -26,7 +26,7 @@ function processPromBlob(promBlob) {
 function errHandler(e) {
 	let respdiv = document.getElementById("resp");
 	if (e.message == 404)
-		respdiv.innerText = "Not found. Try another name?";
+		respdiv.innerText = "Not found.";
 	else if (e.message == 401)
 		respdiv.innerText = "401 Unauthorized :(";
 	else if (e.message == 403)
@@ -35,6 +35,7 @@ function errHandler(e) {
 		respdiv.innerText = "Unexpected error occurred:"
 		respdiv.innerText += " " + e.message.toString();
 	}
+	respdiv.innerText += " " + "Try another name?";
 }
 
 function initializeSearchBox() {
