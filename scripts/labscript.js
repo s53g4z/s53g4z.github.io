@@ -6,16 +6,17 @@ let keyDdown = false;
 let keyAdown = false;
 let boxArr = new Array();
 
+// Return true if item is sitting on a surface.
 function onSurface(item) {
-	let styles = getComputedStyle(item);
-	return !canMove("down", item) || parseFloat(styles.top) + 
-		parseFloat(styles.height) + step > window.innerHeight;
+	return !canMove("down", item);
 }
 
+// Return true if horiz is a line in-between obj.a and obj.b
 function inBetween(horiz, obj) {
 	return obj.a <= horiz && horiz <= obj.b;
 }
 
+// Return true if item is at a height where it can collide with aBox.
 function atCollisionHeight(itemStyles, aBoxStyles, itemYV) {
 	let itemTop = parseFloat(itemStyles.top);
 	let itemBottom = parseFloat(itemStyles.height) + itemTop + itemYV;
@@ -28,6 +29,7 @@ function atCollisionHeight(itemStyles, aBoxStyles, itemYV) {
 		inBetween(itemBottom, {a: aBoxTop, b: aBoxBottom});
 }
 
+// Return true if item is at a width where it can collide with aBox.
 function atCollisionWidth(itemStyles, aBoxStyles) {
 	let itemLeft = parseFloat(itemStyles.left);
 	let itemRight = itemLeft + parseFloat(itemStyles.width);
@@ -40,13 +42,32 @@ function atCollisionWidth(itemStyles, aBoxStyles) {
 		inBetween(aBoxRight, {a: itemLeft, b: itemRight});
 }
 
+// Return true if item is above aBox.
 function isAbove(itemStyles, aBoxStyles, itemYV) {
 	let itemBottom = parseFloat(itemStyles.top) + parseFloat(itemStyles.height);
 	let aBoxTop = parseFloat(aBoxStyles.top);
 	return (itemBottom + itemYV >= aBoxTop);
 }
 
+// Return true if item is at a screen edge.
+function atScreenEdge(item) {
+	let itemStyles = getComputedStyle(item);
+	let itemLeft = Math.ceil(parseFloat(itemStyles.left));
+	let itemRight = Math.ceil(itemLeft + parseFloat(itemStyles.width));
+	let itemTop = Math.ceil(parseFloat(itemStyles.top));
+	let itemBottom = Math.ceil(itemTop + parseFloat(itemStyles.height));
+	
+	if (itemLeft + item.xv <= 0 || itemRight + item.xv >= window.innerWidth)
+		return true;
+	if (itemTop + item.yv <= 0 || itemBottom + item.yv >= window.innerHeight)
+		return true;
+	return false;
+}
+
+// Return true if item can move.
 function canMove(direction, item) {
+	if (atScreenEdge(item))
+		return false;
 	for (let i = 0; i < boxArr.length; i++) {
 		let aBox = boxArr[i];
 		if (aBox == item)
@@ -82,6 +103,7 @@ function canMove(direction, item) {
 	return true;
 }
 
+// Move the item (if possible).
 function move(item) {
 	let styles = getComputedStyle(item);
 	if (item.xv > 0 && canMove("right", item) || item.xv < 0 && canMove("left", item))
@@ -97,19 +119,7 @@ function move(item) {
 	}
 }
 
-function atRightSideOfScreen(item) {
-	let styles = getComputedStyle(item);
-	let left = parseFloat(styles.left);
-	let width = parseFloat(styles.width);
-	return left + width + step >= window.innerWidth;
-}
-
-function atLeftSideOfScreen(item) {
-	let styles = getComputedStyle(item);
-	let left = parseFloat(styles.left);
-	return left <= 0;
-}
-
+// Game loop.
 function loop() {
 	let box1 = document.querySelector("#box1");
 	if (keyWdown) {
@@ -120,15 +130,9 @@ function loop() {
 	else if (!keyWdown)
 		box1.style.backgroundColor = "red";
 	if (keyDdown) {
-		if (!atRightSideOfScreen(box1))
-			box1.xv = step;
-		else
-			box1.xv = 0;
+		box1.xv = step;
 	} else if (keyAdown) {
-		if (!atLeftSideOfScreen(box1))
-			box1.xv = -step;
-		else
-			box1.xv = 0;
+		box1.xv = -step;
 	} else if (!keyAdown && !keyDdown) {
 		box1.xv = 0;
 	}
@@ -136,6 +140,7 @@ function loop() {
 	requestAnimationFrame(loop);
 }
 
+// Register the input handlers.
 function initializeInput() {
 	window.onkeydown = (e) => {
 		if (e.key == "w")
