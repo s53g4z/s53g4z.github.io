@@ -6,137 +6,127 @@ let keyDdown = false;
 let keyAdown = false;
 let boxArr = new Array();
 
-// Return true if item is sitting on a surface.
-function onSurface(item) {
-	return !canMove("down", item);
-}
-
-// Return true if horiz is a line in-between obj.a and obj.b
-function inBetween(horiz, obj) {
-	return obj.a <= horiz && horiz <= obj.b;
-}
-
-// Return true if item is at a height where it can collide with aBox.
-function atCollisionHeight(itemStyles, aBoxStyles, itemYV) {
-	let itemTop = parseFloat(itemStyles.top);
-	let itemBottom = parseFloat(itemStyles.height) + itemTop + itemYV;
-	let aBoxTop = parseFloat(aBoxStyles.top);
-	let aBoxBottom = parseFloat(aBoxStyles.height) + aBoxTop;
-	
-	return inBetween(aBoxTop, {a: itemTop, b: itemBottom}) ||
-		inBetween(aBoxBottom, {a: itemTop, b: itemBottom}) ||
-		inBetween(itemTop, {a: aBoxTop, b: aBoxBottom}) ||
-		inBetween(itemBottom, {a: aBoxTop, b: aBoxBottom});
-}
-
-// Return true if item is at a width where it can collide with aBox.
-function atCollisionWidth(itemStyles, aBoxStyles) {
-	let itemLeft = parseFloat(itemStyles.left);
-	let itemRight = itemLeft + parseFloat(itemStyles.width);
-	let aBoxLeft = parseFloat(aBoxStyles.left);
-	let aBoxRight = aBoxLeft + parseFloat(aBoxStyles.width);
-	
-	return inBetween(aBoxLeft, {a: itemLeft, b: itemRight}) ||
-		aBoxLeft <= itemLeft && aBoxRight >= itemRight ||
-		itemLeft < aBoxLeft && itemRight > aBoxRight ||
-		inBetween(aBoxRight, {a: itemLeft, b: itemRight});
-}
-
-// Return true if item is above aBox.
-function isAbove(itemStyles, aBoxStyles, itemYV) {
-	let itemBottom = parseFloat(itemStyles.top) + parseFloat(itemStyles.height);
-	let aBoxTop = parseFloat(aBoxStyles.top);
-	return (itemBottom + itemYV >= aBoxTop);
-}
-
-// Return true if item is at a screen edge.
-function atScreenEdge(item) {
-	let itemStyles = getComputedStyle(item);
-	let itemLeft = Math.ceil(parseFloat(itemStyles.left));
-	let itemRight = Math.ceil(itemLeft + parseFloat(itemStyles.width));
-	let itemTop = Math.ceil(parseFloat(itemStyles.top));
-	let itemBottom = Math.ceil(itemTop + parseFloat(itemStyles.height));
-	
-	if (itemLeft + item.xv <= 0 || itemRight + item.xv >= window.innerWidth)
+function onSurface(box) {
+	let styles = getComputedStyle(box.handle);
+	let onGround = Math.ceil(parseFloat(styles.top) + parseFloat(styles.height) +
+		parseFloat(box.vy)) >= window.innerHeight;
+	if (onGround)
 		return true;
-	if (itemTop + item.yv <= 0 || itemBottom + item.yv >= window.innerHeight)
-		return true;
-	return false;
-}
-
-// Return true if item can move.
-function canMove(direction, item) {
-	if (atScreenEdge(item))
-		return false;
 	for (let i = 0; i < boxArr.length; i++) {
-		let aBox = boxArr[i];
-		if (aBox == item)
+		if (box == boxArr[i])
 			continue;
-		let itemStyles = getComputedStyle(item);
-		let aBoxStyles = getComputedStyle(aBox);
-		let itemWantLeft = parseFloat(itemStyles.left) + item.xv;
-		if (!atCollisionHeight(itemStyles, aBoxStyles, item.yv) ||
-			!atCollisionWidth(itemStyles, aBoxStyles))
-			continue;
-		let aBoxLeft = parseFloat(aBoxStyles.left);
-		let aBoxRight = parseFloat(aBoxStyles.width) + aBoxLeft;
-		if (direction == "left") {
-			if (parseFloat(itemStyles.left) - item.xv > aBoxRight &&
-				itemWantLeft <= aBoxRight)
-				return false;
-		} else if (direction == "right") {
-			if (parseFloat(itemStyles.left) < aBoxLeft &&
-				itemWantLeft + parseFloat(itemStyles.width) >= aBoxLeft)
-				return false;
-		} else if (direction == "down") {
-			let itemBottom = parseFloat(itemStyles.top) +
-				parseFloat(itemStyles.height);
-			let aBoxTop = parseFloat(aBoxStyles.top);
-			if (isAbove(itemStyles, aBoxStyles, item.yv) &&
-				itemBottom + item.yv > aBoxTop)
-				return false;
-		} else if (direction == "up") {
-			
-		} else
-			throw new Error("canMove(): unknown direction");
+		let styles1 = box.st;
+		let bot1 = Math.ceil(parseFloat(styles1.top) + parseFloat(styles1.height));
+		let styles2 = boxArr[i].st;
+		let top2 = Math.ceil(parseFloat(styles2.top));
+		if (canCollideHorizontally(styles1, styles2, "down") &&
+			canCollideVertically(styles1, styles2, "down") &&
+			bot1 + parseFloat(box.vy) >= top2)
+				return true;
 	}
-	return true;
+	return false;;
 }
 
-// Move the item (if possible).
-function move(item) {
-	let styles = getComputedStyle(item);
-	if (item.xv > 0 && canMove("right", item) || item.xv < 0 && canMove("left", item))
-		item.style.left =  (parseFloat(styles.left) + item.xv) + "px";
-	if (item.yv > 0 && canMove("down", item) || item.yv < 0 && canMove("up", item))
-		item.style.top = (parseFloat(styles.top) + item.yv) + "px";
+function fall(box) {
+	let styles = getComputedStyle(box.handle);
+	box.vy += box.ay;
+	box.style.top = Math.ceil(parseFloat(styles.top) + box.vy) + "px";
+}
+
+function jump(box) {
+	let styles = getComputedStyle(box.handle);
+	if (onSurface(box))
+		box.vy = -5;
+}
+
+// Return if a is between x and y.
+function isBetween(a, x, y) {
+	if (x > y)
+		throw new Error("x must be <= y");
+	return x < a && a < y;
+}
+
+function canCollideHorizontally(styles1, styles2, direction) {
+	let top1 = Math.ceil(parseFloat(styles1.top));
+	let bot1 = top1 + Math.ceil(parseFloat(styles1.height));
+	let top2 = Math.ceil(parseFloat(styles2.top));
+	let bot2 = top2 + Math.ceil(parseFloat(styles2.height));
 	
-	item.xv += item.xa;
-	if (onSurface(item)) {
-		item.yv = 0;
-	} else {
-		item.yv += item.ya;
+	if (direction == "down") {
+		top1 += step;  // bad approximation, should use vy instead
+		bot1 += step;  // ibid
+	} else if (direction == "up") {
+		top1 -= step;
+		bot1 -= step;
+	}
+	
+	let ret = isBetween(top2, top1, bot1) ||
+		isBetween(top1, top2, bot2) && isBetween(bot1, top2, bot2) ||
+		isBetween(bot2, top1, bot1);
+	
+	return ret;
+}
+
+function canCollideVertically(styles1, styles2, direction) {
+	let left1 = Math.ceil(parseFloat(styles1.left));
+	let right1 = left1 + Math.ceil(parseFloat(styles1.width));
+	let left2 = Math.ceil(parseFloat(styles2.left));
+	let right2 = left2 + Math.ceil(parseFloat(styles2.width));
+	
+	if (direction == "left") {
+		left1 -= step;
+		right1 -= step;
+	} else if (direction == "right") {
+		left1 += step;
+		right1 += step;
+	}
+	
+	let ret = isBetween(left2, left1, right1) ||
+		isBetween(left1, left2, right2) && isBetween(right1, left2, right2) ||
+		isBetween(right2, left1, right1);
+		
+	return ret;
+}
+
+function handleLeft(styles1, styles2, item1) {
+	let left1 = Math.ceil(parseFloat(styles1.left));
+	let right2 = Math.ceil(parseFloat(styles2.left) +
+		parseFloat(styles2.width));
+	let canHitHoriz = canCollideHorizontally(styles1, styles2);
+	let canHitVert = canCollideVertically(styles1, styles2, "left");
+	let canHit = canHitHoriz && canHitVert;
+	if (!canHit ||
+		canHit && left1 - step > right2)
+		item1.style.left = (left1 - step) + "px";
+}
+
+function move (direction, item1) {
+	for (let item2 of boxArr) {
+		if (item1 == item2)
+			continue;
+		let styles1 = getComputedStyle(item1.handle);
+		let styles2 = getComputedStyle(item2.handle);
+		if (direction == "left") {
+			handleLeft(styles1, styles2, item1);
+		} else
+			throw new Error("unknown direction to move()");
 	}
 }
 
-// Game loop.
 function loop() {
-	let box1 = document.querySelector("#box1");
-	if (keyWdown) {
-		box1.style.backgroundColor = "lime";
-		if (onSurface(box1))
-			box1.yv -= 5;
-	}
-	else if (!keyWdown)
-		box1.style.backgroundColor = "red";
+	let styles = getComputedStyle(boxArr[0].handle);
 	if (keyDdown) {
-		box1.xv = step;
+		boxArr[0].style.left = (parseFloat(styles.left) + step) + "px";
 	} else if (keyAdown) {
-		box1.xv = -step;
-	} else if (!keyAdown && !keyDdown) {
-		box1.xv = 0;
+		move("left", boxArr[0]);
 	}
-	move(box1);
+	if (keyWdown) {
+		jump(boxArr[0]);
+	}
+	for (let box of boxArr) {
+		if (!onSurface(box))
+			fall(box);
+	}
 	requestAnimationFrame(loop);
 }
 
@@ -160,25 +150,26 @@ function initializeInput() {
 	};
 }
 
-function initializeBox1() {
-	let box1 = document.querySelector("#box1");
-	box1.xv = box1.xa = 0;
-	box1.yv = 0;
-	box1.ya = 0.2;
-	boxArr.push(box1);
+function Box(handle, vx, vy, ax, ay) {
+	this.handle = handle;
+	this.style = handle.style;
+	this.st = getComputedStyle(handle);
+	this.vx = vx;
+	this.vy = vy;
+	this.ax = ax;
+	this.ay = ay;
 }
 
-function initializeBox2() {
-	let box2 = document.querySelector("#box2");
-	box2.xv = box2.xa = 0;
-	box2.yv = 0;
-	box2.ya = 0; // stationary
+// Initialize the boxes.
+function initializeBoxes() {
+	let box1 = new Box(document.getElementById("box1"), 0, 0, 0, 0.2);
+	boxArr.push(box1);
+	let box2 = new Box(document.getElementById("box2"), 0, 0, 0, 0);
 	boxArr.push(box2);
 }
 
 (function() {
 	initializeInput();
-	initializeBox1();
-	initializeBox2();
+	initializeBoxes();
 	loop();
 })();
