@@ -47,7 +47,13 @@ function canCollideHorizontally(box1, box2, direction) {
 	let left2 = F(box2.styl.left) - border;
 	let right2 = F(box2.styl.left) + F(box2.styl.width) + border;
 	
-	
+	if (direction == "left") {
+		left1 += step;
+		right1 += step;
+	} else if (direction == "right") {
+		left1 -= step;
+		right1 -= step;
+	}
 	
 	return (inBetween(left2, left1, right1) ||
 		inBetween(left1, left2, right2) && inBetween(right1, left2, right2) ||
@@ -86,11 +92,11 @@ function canTouch(box1, box2) {
 	return true;
 }
 
-// Is line between top and bottom?
+// Is line between or equal to top and bottom?
 function inBetween(line, top, bottom) {
 	if (top > bottom)
 		throw new Error("top must be less than bottom for inBetween()");
-	return top < line && line < bottom;
+	return top <= line && line <= bottom;
 }
 
 function touching(box1, box2, direction) {
@@ -103,9 +109,14 @@ function touching(box1, box2, direction) {
 	
 	if (!canTouch(box1, box2))
 		return false;
-	if (direction == "right" && canCollideVertically(box1, box2) &&
-		canCollideHorizontally(box1, box2)) {
+	if (direction == "right" &&
+		canCollideVertically(box1, box2, "right") &&
+		canCollideHorizontally(box1, box2, "right")) {
 		return right1 > left2;
+	} else if (direction == "left" &&
+		canCollideVertically(box1, box2, "left") &&
+		canCollideHorizontally(box1, box2, "left")) {
+		return left1 < right2;
 	}
 	return false;
 }
