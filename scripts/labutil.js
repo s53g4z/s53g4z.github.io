@@ -28,6 +28,7 @@ function onOrCloseToGround(box) {
 }
 
 function aboutEqual(val1, val2) {
+	return false;
 	return Math.abs(val1 - val2) < 1;
 }
 

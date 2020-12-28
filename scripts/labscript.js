@@ -1,11 +1,26 @@
 //
 
 function areTouching(box1, box2) {
-	return canCollideHorizontally(box1, box2, exact) &&
-		canCollideVertically(box1, box2, exact);
+	return canCollideHorizontally(box1, box2) &&
+		canCollideVertically(box1, box2);
 }
 
 function areCloseToTouching(box1, box2, dir) {
+	if (!canCollideHorizontally(box1, box2, dir))
+		return false;
+	if (dir == left) {
+		let left1 = F(box1.styl.left);
+		let right2 = F(box2.styl.left) + F(box2.styl.width);
+		if (left1 < right2)
+			return false;
+		return left1 - right2 < step;
+	} else if (dir == right) {
+		let right1 = F(box1.styl.left) + F(box1.styl.width);
+		let left2 = F(box2.styl.left);
+		if (right1 < left2)
+			return false;
+		return right1 - left2 < step;
+	}
 	return canCollideHorizontally(box1, box2, dir) &&
 		canCollideVertically(box1, box2, dir);
 }
@@ -20,9 +35,21 @@ function distBetween(box1, box2, dir) {
 	} else if (dir == down) {
 		let bottom1 = F(box1.styl.top) + F(box1.styl.height);
 		let top2 = F(box2.styl.top);
-		if (bottom1 > top2)
+		if (Math.floor(bottom1) > Math.floor(top2))
 			console.log("WARN: overlapping boxes (vertically)");
 		return top2 - bottom1;
+	} else if (dir == left) {
+		let left1 = F(box1.styl.left);
+		let right2 = F(box2.styl.left) + F(box2.styl.width);
+		if (right2 > left1)
+			console.log("WARN: overlapping boxes (player going left)");
+		return left1 - right2;
+	} else if (dir == up) {
+		let top1 = F(box1.styl.top);
+		let bottom2 = F(box2.styl.top) + F(box2.styl.height);
+		if (bottom2 > top1)
+			console.log("WARN: overlapping boxes (player going up)");
+		return top1 - bottom2;
 	} else {
 		throw new Error ("unimplemeted distance for distBetween");
 	}
@@ -55,12 +82,10 @@ function canMoveHorizHowMuch(box1, dir) {
 	for (box2 of boxArr) {
 		if (box1 == box2)
 			continue;
-		if (areTouching(box1, box2))
-			return zero;
 		if (areCloseToTouching(box1, box2, dir)) {
-			let ret = distBetween(box1, box2, dir);
+			let ret = Math.abs(distBetween(box1, box2, dir));
 			if (dir == right)
-				return ret;
+				return +ret;
 			else if (dir == left)
 				return -ret;
 		}
@@ -128,8 +153,6 @@ function canMoveVertHowMuch(box1, dir) {
 	for (box2 of boxArr) {
 		if (box1 == box2)
 			continue;
-		if (areTouching(box1, box2))
-			return zero;
 		if (areCloseToTouching(box1, box2, dir)) {
 			let ret = distBetween(box1, box2, dir);
 			if (dir == down)
