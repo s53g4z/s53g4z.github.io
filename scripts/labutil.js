@@ -12,7 +12,6 @@ let border = 0;
 let keyWdown = false;
 let keyDdown = false;
 let keyAdown = false;
-let isJumping = false;
 let boxArr = new Array();
 
 // float-ify

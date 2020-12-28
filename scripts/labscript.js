@@ -86,7 +86,8 @@ function maybeScheduleMoveLeft() {
 }
 
 function maybeJump() {
-	boxArr[0].vy = canMoveVertHowMuch(boxArr[0], up);
+	let amount = canMoveVertHowMuch(boxArr[0], up);
+	boxArr[0].vy = amount;
 }
 
 function handleInput () {
@@ -143,10 +144,10 @@ function canMoveVertHowMuch(box1, dir) {
 	else if (isCloseToBottomEdgeOfScreen(box1) && dir == down)
 		return innerHeight - F(box1.styl.top) - F(box1.styl.height);
 	if (dir == up)
-		if (isAtBottomEdgeOfScreen(box1))
+		if (isAtBottomEdgeOfScreen(box1)) {
 			return -step;  // XXX ?
-		else
-			return zero;
+		} else
+			return box1.vy + box1.ay;
 	else if (dir == down)
 		return box1.vy + box1.ay;
 }
