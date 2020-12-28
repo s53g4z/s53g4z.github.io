@@ -5,19 +5,19 @@ body {
 #box1 {
 	top: 5px;
 	left: 5px;
-	border: 1px solid black;
+	border: 0px solid black;
 	background-color: grey;
 	width: 50px;
 	height: 50px;
 	position: absolute;
-	box-sizing: border-box;
 }
 
 #box2 {
-	top: 80vh;
-	left: 200px;
-	border: 1px solid black;
-	width: 50px;
+	top: 350px;
+	left: 250px;
+	background-color: lime;
+	border: 0px solid black;
+	width: 30px;
 	height: 10px;
 	position: absolute;
 }
@@ -25,7 +25,8 @@ body {
 #box3 {
 	top: 90vh;
 	left: 400px;
-	border: 1px solid black;
+	background-color: lime;
+	border: 0px solid black;
 	width: 50px;
 	height: 10px;
 	position: absolute;
