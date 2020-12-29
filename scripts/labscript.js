@@ -111,7 +111,8 @@ function canMoveHorizHowMuch(box1, dir) {
 	for (box2 of boxArr) {
 		if (box1 == box2)
 			continue;
-		if (areCloseToTouching(box1, box2, dir)) {
+		if (areCloseToTouching(box1, box2, dir) &&
+			canCollideHorizontally(box1, box2, dir)) {
 			let ret = Math.abs(distBetween(box1, box2, dir));
 			if (dir == right) {
 				if (F(box1.styl.left) < F(box2.styl.left))  // box1->   box2
@@ -190,18 +191,31 @@ function canMoveVertHowMuch(box1, dir) {
 	for (box2 of boxArr) {
 		if (box1 == box2)
 			continue;
-		if (areCloseToTouching(box1, box2, dir)) {
-			let ret = distBetween(box1, box2, dir);
-			if (dir == down)
-				return ret;
-			else if (dir == up)
-				return -ret;
+		if (areCloseToTouching(box1, box2, dir) &&
+			canCollideVertically(box1, box2, dir)) {
+				let mini = distBetween(box1, box2, dir);
+				let Atop = F(box1.styl.top);
+				let Btop = F(box2.styl.top);
+				let Abottom = Atop + F(box1.styl.height);
+				let Bbottom = Btop + F(box2.styl.height);
+				if (Atop < Btop) {  // A is above B
+					if (dir == down)
+						return mini;
+					if (dir == up && Abottom >= Btop)
+						return -step
+				} else if (Btop < Atop) {  // B is above A
+					if (dir == down)
+						break;
+					if (dir == up)
+						return -mini;
+				} else
+					throw new Error("unexpected box stacking");
 		}
 	}
 	
 	if (isCloseToTopEdgeOfScreen(box1) && dir == up)
 		return F(box1.styl.top);
-	else if (isCloseToBottomEdgeOfScreen(box1) && dir == down)
+	else if (isCloseToBottomEdgeOfScreen(box1) && box1.vy > 0)
 		return innerHeight - F(box1.styl.top) - F(box1.styl.height);
 	if (dir == up)
 		if (isAtBottomEdgeOfScreen(box1)) {
@@ -220,7 +234,7 @@ function calculateAnimations() {
 
 	let box2 = boxArr[1];
 	let box3 = boxArr[2];
-	if (box2.direction == left) {
+	/*if (box2.direction == left) {
 		box2.vx = canMoveHorizHowMuch(box2, left);
 		if (box2.vx == 0)
 			box2.direction = right;  // for next time
@@ -228,7 +242,7 @@ function calculateAnimations() {
 		box2.vx = canMoveHorizHowMuch(box2, right);
 		if (box2.vx == 0)
 			box2.direction = left;  // for next time
-	}
+	}*/
 	box3.vx = canMoveHorizHowMuch(box3, right);
 }
 
