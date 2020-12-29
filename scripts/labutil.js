@@ -14,22 +14,136 @@ let keyDdown = false;
 let keyAdown = false;
 let boxArr = new Array();
 
+function isAtBottomEdgeOfScreen(box) {
+	let boxBottom = F(box.styl.top) + F(box.styl.height);
+	return boxBottom == innerHeight;
+}
+
+function isAtTopEdgeOfScreen(box) {
+	return F(box.styl.top) == zero;
+}
+
+function isCloseToTopEdgeOfScreen(box) {
+	return F(box.styl.top) < step;
+}
+
+function isCloseToBottomEdgeOfScreen(box) {
+	let boxBottom = F(box.styl.top) + F(box.styl.height);
+	return innerHeight - boxBottom < step;
+}
+
+function areTouching(box1, box2) {
+	return canCollideHorizontally(box1, box2) &&
+		canCollideVertically(box1, box2);
+}
+
+function distanceBetween(a, b) {
+	let xx2 = (b.x-a.x) * (b.x-a.x);
+	let yy2 = (b.y-a.y) * (b.y-a.y);
+	return Math.sqrt(xx2 + yy2);
+}
+
+function getRadius(A) {
+	let upperLeft = new Point(F(A.styl.left), F(A.styl.top));
+	let lowerRight = new Point(F(A.styl.left) + F(A.styl.width),
+		F(A.styl.top) + F(A.styl.height));
+	let dist = distanceBetween(upperLeft, lowerRight);
+	return dist / 2;
+}
+
+function getCenter(A) {
+	let point = new Point(F(A.styl.left), F(A.styl.top));
+	point.x += F(A.styl.width) / 2;
+	point.y += F(A.styl.height) / 2;
+	return point;
+}
+
+function areCloseToTouching(box1, box2, dir) {
+	let A = box1;
+	let B = box2;
+	let Aradius = getRadius(A);
+	let Bradius = getRadius(B);
+	let Acenterpoint = getCenter(A);
+	let Bcenterpoint = getCenter(B);
+	let distanceBetweenCircles = distanceBetween(Acenterpoint, Bcenterpoint);
+	return distanceBetweenCircles + 1 < Aradius + Bradius;
+}
+
+function vertDistBetween(A, B, dir) {
+	let Atop = F(A.styl.top);
+	let Btop = F(B.styl.top);
+	let Abottom = Atop + F(A.styl.height);
+	let Bbottom = Btop + F(B.styl.height);
+	
+	if (Atop < Btop) {  // A is above B
+		let dist = Btop - Abottom;
+		if (dist < 0)
+			return zero;
+		return dist;
+	} else if (Atop > Btop) {  // B is above A
+		let dist = Atop - Bbottom;
+		if (dist < 0)
+			return zero;
+		return dist;
+	} else
+		return zero;
+}
+
+function horizDistBetween(A, B, dir) {
+	let Aleft = F(A.styl.left);
+	let Bleft = F(B.styl.left);
+	let Aright = Aleft + F(A.styl.width);
+	let Bright = Bleft + F(B.styl.width);
+	
+	if (Aleft < Bleft) {  // A before B
+		let dist = Bleft - Aright;
+		if (dist < 0)
+			return zero;
+		return dist;
+	} else if (Bleft < Aleft) { // B before A
+		let dist = Aleft - Bright;
+		if (dist < 0)
+			return zero;
+		return dist;
+	} else
+		return zero;
+}
+
+function distBetween(box1, box2, dir) {
+	if (dir == up || dir == down)
+		return verticalDistance = vertDistBetween(box1, box2, dir);
+	if (dir == left || dir == right)
+		return horizontalDistance = horizDistBetween(box1, box2, dir);
+}
+
+function isAtLeftEdgeOfScreen(box) {
+	let boxLeft = F(box.styl.left);
+	return boxLeft == zero;
+}
+
+function isAtRightEdgeOfScreen(box) {
+	let boxRight = F(box.styl.left) + F(box.styl.width);
+	return boxRight == innerWidth;
+}
+
+function isCloseToLeftEdgeOfScreen(box) {
+	let boxLeft = F(box.styl.left);
+	return boxLeft < step;
+}
+
+function isCloseToRightEdgeOfScreen(box) {
+	let boxRight = F(box.styl.left) + F(box.styl.width);
+    return innerWidth - boxRight < step;
+}
+
 // float-ify
 function F(item) {
 	return parseFloat(item);
 }
 
-function onOrCloseToGround(box) {
-	let boxBottom = F(box.styl.top) + F(box.styl.height) + border;
-	if (window.innerHeight > boxBottom && window.innerHeight - boxBottom < step ||
-		boxBottom >= window.innerHeight)
-		return true;
-	return false;
-}
-
 function aboutEqual(val1, val2) {
 	return false;
-	return Math.abs(val1 - val2) < 1;
+	//return Math.abs(val1 - val2) < 1;
 }
 
 function round(box) {

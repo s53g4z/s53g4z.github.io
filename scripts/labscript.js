@@ -1,113 +1,14 @@
 //
 
-function areTouching(box1, box2) {
-	return canCollideHorizontally(box1, box2) &&
-		canCollideVertically(box1, box2);
-}
 
-function distanceBetween(a, b) {
-	let xx2 = (b.x-a.x) * (b.x-a.x);
-	let yy2 = (b.y-a.y) * (b.y-a.y);
-	return Math.sqrt(xx2 + yy2);
-}
-
-function getRadius(A) {
-	let upperLeft = new Point(F(A.styl.left), F(A.styl.top));
-	let lowerRight = new Point(F(A.styl.left) + F(A.styl.width),
-		F(A.styl.top) + F(A.styl.height));
-	let dist = distanceBetween(upperLeft, lowerRight);
-	return dist / 2;
-}
-
-function getCenter(A) {
-	let point = new Point(F(A.styl.left), F(A.styl.top));
-	point.x += F(A.styl.width) / 2;
-	point.y += F(A.styl.height) / 2;
-	return point;
-}
-
-function areCloseToTouching(box1, box2, dir) {
-	let A = box1;
-	let B = box2;
-	let Aradius = getRadius(A);
-	let Bradius = getRadius(B);
-	let Acenterpoint = getCenter(A);
-	let Bcenterpoint = getCenter(B);
-	let distanceBetweenCircles = distanceBetween(Acenterpoint, Bcenterpoint);
-	return distanceBetweenCircles + 1 < Aradius + Bradius;
-}
-
-function vertDistBetween(A, B, dir) {
-	let Atop = F(A.styl.top);
-	let Btop = F(B.styl.top);
-	let Abottom = Atop + F(A.styl.height);
-	let Bbottom = Btop + F(B.styl.height);
-	
-	if (Atop < Btop) {  // A is above B
-		let dist = Btop - Abottom;
-		if (dist < 0)
-			return zero;
-		return dist;
-	} else if (Atop > Btop) {  // B is above A
-		let dist = Atop - Bbottom;
-		if (dist < 0)
-			return zero;
-		return dist;
-	} else
-		return zero;
-}
-
-function horizDistBetween(A, B, dir) {
-	let Aleft = F(A.styl.left);
-	let Bleft = F(B.styl.left);
-	let Aright = Aleft + F(A.styl.width);
-	let Bright = Bleft + F(B.styl.width);
-	
-	if (Aleft < Bleft) {  // A before B
-		let dist = Bleft - Aright;
-		if (dist < 0)
-			return zero;
-		return dist;
-	} else if (Bleft < Aleft) { // B before A
-		let dist = Bright - Aleft;
-		if (dist < 0)
-			return zero;
-		return dist;
-	} else
-		return zero;
-}
-
-function distBetween(box1, box2, dir) {
-	if (dir == up || dir == down)
-		return verticalDistance = vertDistBetween(box1, box2, dir);
-	if (dir == left || dir == right)
-		return horizontalDistance = horizDistBetween(box1, box2, dir);
-}
-
-function isAtLeftEdgeOfScreen(box) {
-	let boxLeft = F(box.styl.left);
-	return boxLeft == zero;
-}
-
-function isAtRightEdgeOfScreen(box) {
-	let boxRight = F(box.styl.left) + F(box.styl.width);
-	return boxRight == innerWidth;
-}
-
-function isCloseToLeftEdgeOfScreen(box) {
-	let boxLeft = F(box.styl.left);
-	return boxLeft < step;
-}
-
-function isCloseToRightEdgeOfScreen(box) {
-	let boxRight = F(box.styl.left) + F(box.styl.width);
-    return innerWidth - boxRight < step;
-}
 
 function canMoveHorizHowMuch(box1, dir) {
 	if (isAtLeftEdgeOfScreen(box1) && dir == left ||
 		isAtRightEdgeOfScreen(box1) && dir == right)
 		return zero;
+	let canMove = step;
+	if (dir == left)
+		canMove = -step;
 	for (box2 of boxArr) {
 		if (box1 == box2)
 			continue;
@@ -115,74 +16,40 @@ function canMoveHorizHowMuch(box1, dir) {
 			canCollideHorizontally(box1, box2, dir)) {
 			let ret = Math.abs(distBetween(box1, box2, dir));
 			if (dir == right) {
-				if (F(box1.styl.left) < F(box2.styl.left))  // box1->   box2
-					return +ret;
-				return step;
+				if (F(box1.styl.left) < F(box2.styl.left) &&
+					Math.abs(ret) < Math.abs(canMove))  // box1->   box2
+					canMove = +ret;
+				//return step;
 			} else if (dir == left) {
-				if (F(box2.styl.left) < F(box1.styl.left))  // box2    <-box1
-					return -ret;
-				return -step;
+				if (F(box2.styl.left) < F(box1.styl.left) &&
+					Math.abs(ret) < Math.abs(canMove))  // box2    <-box1
+					canMove = -ret;
+				//return -step;
 			}
 		}
 	}
 	if (isCloseToLeftEdgeOfScreen(box1) && dir == left)
-		return F(box1.styl.left) - zero;
-	else if (isCloseToRightEdgeOfScreen(box1) && dir == right)
-		return innerWidth - F(box1.styl.left) - F(box1.styl.width);
-
+		return Math.min(canMove, F(box1.styl.left) - zero);
+	else if (isCloseToRightEdgeOfScreen(box1) && dir == right) {
+		let distToScreenEdge = innerWidth - F(box1.styl.left) - F(box1.styl.width);
+		return Math.min(canMove, distToScreenEdge);
+	}
+	return canMove;
 	if (dir == right)
 		return step;
 	else if (dir == left)
 		return -step;
 }
 
-function maybeScheduleMoveRight() {
-	boxArr[0].vx = canMoveHorizHowMuch(boxArr[0], right);
+function hitHead(box1, box2) {
+	let Atop = F(box1.styl.top);
+	let Btop = F(box2.styl.top);
+	let Abottom = Atop + F(box1.styl.height);
+	let Bbottom = Btop + F(box2.styl.height);
+	return Math.abs(Atop - Bbottom) < 2;
 }
 
-function maybeScheduleMoveLeft() {
-	boxArr[0].vx = canMoveHorizHowMuch(boxArr[0], left);
-
-}
-
-function maybeJump() {
-	boxArr[0].vy = canMoveVertHowMuch(boxArr[0], up);
-}
-
-function handleInput () {
-	if (keyDdown) {
-		boxArr[0].direction = right;
-		maybeScheduleMoveRight();
-	} else if (keyAdown) {
-		boxArr[0].direction = left;
-		maybeScheduleMoveLeft();
-	} else {
-		boxArr[0].direction = "stationary";
-	}
-	
-	if (keyWdown) {
-		maybeJump();
-	}
-}
-
-function isAtBottomEdgeOfScreen(box) {
-	let boxBottom = F(box.styl.top) + F(box.styl.height);
-	return boxBottom == innerHeight;
-}
-
-function isAtTopEdgeOfScreen(box) {
-	return F(box.styl.top) == zero;
-}
-
-function isCloseToTopEdgeOfScreen(box) {
-	return F(box.styl.top) < step;
-}
-
-function isCloseToBottomEdgeOfScreen(box) {
-	let boxBottom = F(box.styl.top) + F(box.styl.height);
-	return innerHeight - boxBottom < step;
-}
-
+// return possible vertical movement
 function canMoveVertHowMuch(box1, dir) {
 	if (isAtBottomEdgeOfScreen(box1) && dir == down ||
 		isAtTopEdgeOfScreen(box1) && dir == up)
@@ -193,6 +60,8 @@ function canMoveVertHowMuch(box1, dir) {
 			continue;
 		if (areCloseToTouching(box1, box2, dir) &&
 			canCollideVertically(box1, box2, dir)) {
+				if (hitHead(box1, box2) && dir == up)
+					return zero;
 				let mini = distBetween(box1, box2, dir);
 				let Atop = F(box1.styl.top);
 				let Btop = F(box2.styl.top);
@@ -205,7 +74,7 @@ function canMoveVertHowMuch(box1, dir) {
 						return -step
 				} else if (Btop < Atop) {  // B is above A
 					if (dir == down)
-						break;
+						continue;
 					if (dir == up)
 						return -mini;
 				} else
@@ -226,15 +95,86 @@ function canMoveVertHowMuch(box1, dir) {
 		return box1.vy + box1.ay;
 }
 
+function onSurface(box1) {
+	let box1Bottom = F(box1.styl.top) + F(box1.styl.height);
+	if (box1Bottom == innerHeight)  // on ground?
+		return true;
+	for (box2 of boxArr) {  // on another box?
+		if (box1 == box2)
+			continue;
+		let box2Top = F(box2.styl.top);
+		if (box1Bottom == box2Top && canCollideVertically(box1, box2, "exact"))
+			return true;
+	}
+	return false;
+}
+
+function maybeScheduleMoveRight() {
+	let wantMove = step;
+	let canMove = canMoveHorizHowMuch(boxArr[0], right);
+	if (Math.abs(canMove) < Math.abs(wantMove))
+		wantMove = canMove;
+	boxArr[0].vx = wantMove;
+}
+
+function maybeScheduleMoveLeft() {
+	let wantMove = -step;
+	let canMove = canMoveHorizHowMuch(boxArr[0], left);
+	if (Math.abs(canMove) < Math.abs(wantMove))
+		wantMove = canMove;
+	boxArr[0].vx = wantMove;
+}
+
+let wantJump = false;
+let alreadyJumped = false;
+
+function maybeJump() {
+	wantJump = true;
+	//boxArr[0].vy = canMoveVertHowMuch(boxArr[0], up);
+}
+
+function handleInput () {
+	if (keyDdown) {
+		boxArr[0].direction = right;
+		maybeScheduleMoveRight();
+	} else if (keyAdown) {
+		boxArr[0].direction = left;
+		maybeScheduleMoveLeft();
+	} else {
+		boxArr[0].direction = "stationary";
+	}
+	
+	if (keyWdown) {
+		maybeJump();
+	} else if (!keyWdown) {
+		wantJump = false;
+		alreadyJumped = false;
+	}
+}
+
+
 function calculateAnimations() {
 	let box1 = boxArr[0];
-	if (!keyWdown) {
-		box1.vy = canMoveVertHowMuch(box1, down);
+	if (wantJump == true && !alreadyJumped && onSurface(box1)) {
+		let wantVel = -5;
+		let possibleVert = canMoveVertHowMuch(box1, up);
+		if (Math.abs(possibleVert) < Math.abs(wantVel))
+			wantVel = possibleVert;
+		box1.vy = wantVel;
+		wantJump = false;
+		alreadyJumped = true;
+	} else {  // freefall
+		let wantVel = box1.vy + box1.ay;
+		let dir = wantVel >= 0 ? down : up;
+		let possibleVert = canMoveVertHowMuch(box1, dir);
+		if (Math.abs(possibleVert) < Math.abs(wantVel))
+			wantVel = possibleVert;
+		box1.vy = wantVel;
 	}
 
 	let box2 = boxArr[1];
 	let box3 = boxArr[2];
-	/*if (box2.direction == left) {
+	if (box2.direction == left) {
 		box2.vx = canMoveHorizHowMuch(box2, left);
 		if (box2.vx == 0)
 			box2.direction = right;  // for next time
@@ -242,7 +182,7 @@ function calculateAnimations() {
 		box2.vx = canMoveHorizHowMuch(box2, right);
 		if (box2.vx == 0)
 			box2.direction = left;  // for next time
-	}*/
+	}
 	box3.vx = canMoveHorizHowMuch(box3, right);
 }
 
