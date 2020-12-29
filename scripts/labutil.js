@@ -115,6 +115,11 @@ function Box(hndl, ay) {
 	this.direction = right;
 }
 
+function Point(x, y) {
+	this.x = x;
+	this.y = y;
+}
+
 function initBoxes() {
 	let a = new Box(document.querySelector("#box1"), 0.2);
 	let b = new Box(document.querySelector("#box2"), 0.0);
