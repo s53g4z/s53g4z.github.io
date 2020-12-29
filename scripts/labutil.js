@@ -204,19 +204,19 @@ function canCollideVertically(box1, box2, direction) {
 // Register the input handlers.
 function initializeInput() {
 	window.onkeydown = (e) => {
-		if (e.key == "w")
+		if (e.key == "w" || e.key == "ArrowUp")
 			keyWdown = true;
-		else if (e.key == "d")
+		else if (e.key == "d" || e.key == "ArrowRight")
 			keyDdown = true;
-		else if (e.key == "a")
+		else if (e.key == "a" || e.key == "ArrowLeft")
 			keyAdown = true;
 	};
 	window.onkeyup = (e) => {
-		if (e.key == "w")
+		if (e.key == "w" || e.key == "ArrowUp")
 			keyWdown = false;
-		else if (e.key == "d")
+		else if (e.key == "d" || e.key == "ArrowRight")
 			keyDdown = false;
-		else if (e.key == "a")
+		else if (e.key == "a" || e.key == "ArrowLeft")
 			keyAdown = false;
 	};
 }

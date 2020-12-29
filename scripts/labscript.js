@@ -1,7 +1,5 @@
 //
 
-
-
 function canMoveHorizHowMuch(box1, dir) {
 	if (isAtLeftEdgeOfScreen(box1) && dir == left ||
 		isAtRightEdgeOfScreen(box1) && dir == right)
@@ -19,12 +17,10 @@ function canMoveHorizHowMuch(box1, dir) {
 				if (F(box1.styl.left) < F(box2.styl.left) &&
 					Math.abs(ret) < Math.abs(canMove))  // box1->   box2
 					canMove = +ret;
-				//return step;
 			} else if (dir == left) {
 				if (F(box2.styl.left) < F(box1.styl.left) &&
 					Math.abs(ret) < Math.abs(canMove))  // box2    <-box1
 					canMove = -ret;
-				//return -step;
 			}
 		}
 	}
@@ -130,7 +126,6 @@ let alreadyJumped = false;
 
 function maybeJump() {
 	wantJump = true;
-	//boxArr[0].vy = canMoveVertHowMuch(boxArr[0], up);
 }
 
 function handleInput () {
@@ -151,7 +146,6 @@ function handleInput () {
 		alreadyJumped = false;
 	}
 }
-
 
 function calculateAnimations() {
 	let box1 = boxArr[0];
