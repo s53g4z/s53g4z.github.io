@@ -47,7 +47,7 @@ function canMoveVertHowMuch(box1, dir) {
 		isAtTopEdgeOfScreen(box1) && dir == up)
 		return zero;
 	
-	let canMove = step;  // hack why step?
+	let canMove = innerHeight;  // hack why innerheight?
 	for (box2 of boxArr) {
 		if (box1 == box2)
 			continue;

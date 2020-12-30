@@ -29,7 +29,7 @@ function isCloseToTopEdgeOfScreen(box) {
 
 function isCloseToBottomEdgeOfScreen(box) {
 	let boxBottom = F(box.styl.top) + F(box.styl.height);
-	return innerHeight - boxBottom < step;
+	return innerHeight - boxBottom < Math.abs(box.vy);
 }
 
 function areTouching(box1, box2) {
