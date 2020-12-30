@@ -61,8 +61,8 @@ function getCenter(A) {
 function areCloseToTouching(box1, box2, dir) {
 	let A = box1;
 	let B = box2;
-	let Aradius = getRadius(A);
-	let Bradius = getRadius(B);
+	let Aradius = getRadius(A) + 2;  // arbitrary offset to include corners
+	let Bradius = getRadius(B) + 2;
 	let Acenterpoint = getCenter(A);
 	let Bcenterpoint = getCenter(B);
 	let distanceBetweenCircles = distanceBetween(Acenterpoint, Bcenterpoint);
@@ -146,12 +146,7 @@ function aboutEqual(val1, val2) {
 	//return Math.abs(val1 - val2) < 1;
 }
 
-function round(box) {
-	box.hndl.style.top = Math.floor(F(box.styl.top)) + "px";
-	box.hndl.style.left = Math.floor(F(box.styl.left)) + "px";
-}
-
-// Is line between top and bottom?
+// Is line between top and bottom? Helper for canCollideVert/Horiz-ally.
 function inBetween(line, top, bottom) {
 	if (top > bottom)
 		throw new Error("top must be less than bottom for inBetween()");
@@ -175,7 +170,7 @@ function canCollideHorizontally(box1, box2, direction) {
 	let ret = inBetween(top2, top1, bottom1) ||
 		inBetween(top1, top2, bottom2) && inBetween(bottom1, top2, bottom2) ||
 		inBetween(bottom2, top1, bottom1) ||
-		(top1 == top2 && bottom1 == bottom2) ||
+		(top1 == top2 || bottom1 == bottom2) ||
 		aboutEqual(top1, bottom2) ||
 		aboutEqual(bottom1, top2);
 	return ret;
@@ -221,12 +216,29 @@ function initializeInput() {
 	};
 }
 
-function Box(hndl, ay) {
+// Input is either an existing handle and vertical acceleration
+// or null and the rest of the parameters (behavior is optional).
+function Box(hndl, ay, x, y, width, height, color, behavior) {
+	if (hndl == null) {
+		hndl = document.createElement("div");
+		hndl.style.left = x + px;
+		hndl.style.top = y + px;
+		hndl.style.width = width + px;
+		hndl.style.height = height + px;
+		hndl.style.backgroundColor = color;
+		hndl.style.position = "absolute";
+		document.body.appendChild(hndl);
+	}
 	this.hndl = hndl;
 	this.styl = getComputedStyle(hndl);
 	this.vx = this.vy = this.ax = 0;
+	if (isNaN(ay))
+		throw new Error("Box.ay must be a number");
 	this.ay = ay;
 	this.direction = right;
+	this.behavior = behavior;
+	
+	return this;
 }
 
 function Point(x, y) {
@@ -237,8 +249,25 @@ function Point(x, y) {
 function initBoxes() {
 	let a = new Box(document.querySelector("#box1"), 0.2);
 	let b = new Box(document.querySelector("#box2"), 0.0);
+	b.behavior = "patrol";
 	let c = new Box(document.querySelector("#box3"), 0.0);
+	
+	let d = new Box(null, 0.0, 300, 200, 50, 10, "green");
+	let e = new Box(null, 0.2, 300, 190, 50, 10, "blue", "patrol");
+	let f = new Box(null, 0.0, 150, 300, 50, 10, "green");
+	let g = new Box(null, 0.0, 250, 350, 50, 10, "green");
+	let h = new Box(null, 0.0, 275, 250, 50, 10, "green");
+	let i = new Box(null, 0.0, 400, 150, 50, 10, "green");
+	let j = new Box(null, 0.0, 500, 90, 50, 10, "green");
+	
 	boxArr.push(a);
 	boxArr.push(b);
 	boxArr.push(c);
+	boxArr.push(d);
+	boxArr.push(e);
+	boxArr.push(f);
+	boxArr.push(g);
+	boxArr.push(h);
+	boxArr.push(i);
+	boxArr.push(j);
 }
