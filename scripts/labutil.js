@@ -142,7 +142,7 @@ function F(item) {
 }
 
 function aboutEqual(val1, val2) {
-	return false;
+	return val1 == val2;
 	//return Math.abs(val1 - val2) < 1;
 }
 
@@ -237,6 +237,7 @@ function Box(hndl, ay, x, y, width, height, color, behavior) {
 	this.ay = ay;
 	this.direction = right;
 	this.behavior = behavior;
+	this.pushable = false;
 	
 	return this;
 }
@@ -248,6 +249,7 @@ function Point(x, y) {
 
 function initBoxes() {
 	let a = new Box(document.querySelector("#box1"), 0.2);
+	a.pushable = true;
 	let b = new Box(document.querySelector("#box2"), 0.0);
 	b.behavior = "patrol";
 	let c = new Box(document.querySelector("#box3"), 0.0);

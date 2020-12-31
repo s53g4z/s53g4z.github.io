@@ -12,6 +12,13 @@ function canMoveHorizHowMuch(box1, dir) {
 			continue;
 		if (areCloseToTouching(box1, box2, dir) &&
 			canCollideHorizontally(box1, box2, dir)) {
+			let box1Top = F(box1.styl.top);
+			let box1Bottom = F(box1.styl.top) + F(box1.styl.height);
+			let box2Top = F(box2.styl.top);
+			let box2Bottom = F(box2.styl.top) + F(box2.styl.height);
+			if (box1Bottom == box2Top ||
+				box1Top == box2Bottom)
+				continue;
 			let ret = Math.abs(distBetween(box1, box2, dir));
 			if (dir == right) {
 				if (F(box1.styl.left) < F(box2.styl.left) &&
@@ -172,6 +179,35 @@ function calcAniForBox1() {
 	}
 }
 
+function whichBoxAbove(box1, box2) {
+	let box1Top = F(box1.styl.top);
+	let box2Top = F(box2.styl.top);
+	if (box1Top < box2Top)
+		return box1;
+	return box2;
+}
+
+function gonnaHitAnotherBox(box1, boxIgnore, dir) {
+	let ret = innerWidth;
+	for (let box2 of boxArr) {
+		if (box1 == box2 || box2 == boxIgnore)
+			continue;
+		if (areCloseToTouching(box1, box2, exact) &&
+			canCollideHorizontally(box1, box2, exact)) {
+			let left1 = F(box1.styl.left);
+			let left2 = F(box2.styl.left);
+			if (dir == left && left1 < left2 ||
+				dir == right && left1 > left2)
+				continue;
+			let newRet1 = distBetween(box1, box2, dir);
+			let newRet2 = innerWidth;
+			if (Math.min(newRet1, newRet2) < ret)
+				ret = Math.min(newRet1, newRet2);
+		}
+	}
+	return ret;
+}
+
 function calculateAnimations() {
 	let box1 = boxArr[0];
 	calcAniForBox1();  // player gets special treatment
@@ -187,7 +223,40 @@ function calculateAnimations() {
 		if (box != box1)
 			freefall(box);
 	}
-	
+	for (let box1 of boxArr) {
+		if (!box1.pushable)
+			continue;
+		let toMove = innerWidth;
+		for (let box2 of boxArr) {
+			if (box1 == box2)
+				continue;
+			if (!areCloseToTouching(box1, box2, exact) ||
+				!areTouching(box1, box2))
+				continue;
+			let boxAbove = whichBoxAbove(box1, box2);
+			let boxBelow = box2;
+			if (boxAbove == box2)
+				boxBelow = box1;
+			if (box1 != boxAbove || boxBelow.vx == 0)
+				continue;
+			let dir = box2.vx > 0 ? right : left;
+			let left1 = F(box1.styl.left);
+			if (dir == left && left1 < toMove)
+				toMove = F(box1.styl.left);
+			let right1 = left1 + F(box1.styl.width);
+			if (dir == right && innerWidth - right1 < toMove)
+				toMove = innerWidth - right1;
+				
+			let total = box1.vx + box2.vx;
+			let smolMove = gonnaHitAnotherBox(box1, box2, dir);
+			if (Math.abs(smolMove) < Math.abs(total))
+				total = smolMove;
+			if (Math.abs(total) < Math.abs(toMove))
+				toMove = total;
+		}
+		if (toMove != innerWidth)
+			box1.vx = toMove;
+	}
 	// hack: special case for testing
 	let box3 = boxArr[2];
 	box3.vx = canMoveHorizHowMuch(box3, right);
