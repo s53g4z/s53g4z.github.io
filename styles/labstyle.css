@@ -32,22 +32,36 @@ body {
 	position: absolute;
 }
 
-#box4 {
-	top: 200px;
-	left: 300px;
-	background-color: lime;
-	border: 0px solid black;
-	width: 50px;
-	height: 10px;
-	position: absolute;
+#playerStats {
+	width: 100%;
 }
 
-#box5 {
-	top: 300px;
-	left: 200px;
-	background-color: lime;
-	border: 0px solid black;
-	width: 50px;
-	height: 10px;
-	position: absolute;
+#playerCoins {
+	width: max-content;
+}
+
+.coin {
+	background-color: gold;
+	border-radius: 100%;
+}
+
+.coinText {
+	font-family: Arial;
+	font-size: 25px;
+	transform: translateY(-50%);
+	margin-top: 50%;
+	text-align: center;
+}
+
+.coinBox {
+	background-color: skyblue;
+	border-radius: 25%;
+}
+
+.coinBoxText {
+	font-family: Arial;
+	font-size: 25px;
+	transform: translateY(-50%);
+	margin-top: 50%;
+	text-align: center;
 }
