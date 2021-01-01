@@ -58,11 +58,27 @@ body {
 .coinBox {
 	background-color: skyblue;
 	border-radius: 25%;
+	border: 2px solid rgb(0, 200, 200);
 }
 
 .coinBoxText {
 	font-family: Arial;
 	font-size: 25px;
+	transform: translateY(-50%);
+	margin-top: 50%;
+	text-align: center;
+}
+
+.portal {
+	background-color: rgb(255, 255, 255);
+	border-radius: 25%;
+	border: 2px solid black;
+}
+
+.portalText {
+	color: rgb(0, 0, 0);
+	font-family: Arial;
+	font-size: 50px;
 	transform: translateY(-50%);
 	margin-top: 50%;
 	text-align: center;

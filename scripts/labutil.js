@@ -142,8 +142,7 @@ function F(item) {
 }
 
 function aboutEqual(val1, val2) {
-	return val1 == val2;
-	//return Math.abs(val1 - val2) < 1;
+	return Math.floor(val1) == Math.floor(val2);
 }
 
 // Is line between top and bottom? Helper for canCollideVert/Horiz-ally.
@@ -430,8 +429,7 @@ function handleInput () {
 	}
 }
 
-function gameOver() {
-	alert("Game Over!");
+function destroyEverything() {
 	for (let i = 1; i < boxArr.length; i++) {
 		let hndl = boxArr[i].hndl;
 		hndl.parentNode.removeChild(hndl);
@@ -442,6 +440,12 @@ function gameOver() {
 		hndl.parentNode.removeChild(hndl);
 	}
 	specialsArr.splice(0, specialsArr.length);
+	keyWdown = keyAdown = keyDdown = false;
+}
+
+function gameOver() {
+	alert("Game Over!");
+	destroyEverything();
 }
 
 function freefall(box) {
@@ -563,6 +567,8 @@ function moveEverything() {
 	}
 }
 
+let portal = "portal";
+
 function Special(hndl, x, y, width, height, type) {
 	this.hndl = hndl;
 	if (hndl == null) {
@@ -590,6 +596,13 @@ function Special(hndl, x, y, width, height, type) {
 		this.hndl.appendChild(text);
 		this.hndl.className = coinBox;
 		this.activated = false;
+	} else if (this.type == portal) {
+		let text = document.createElement("div");
+		text.innerText = "+";
+		text.className = "portalText";
+		this.hndl.appendChild(text);
+		this.hndl.className = portal;
+		this.activated = false;
 	}
 	
 	specialsArr.push(this);
@@ -599,6 +612,9 @@ let coinBox = "coinBox";
 let specialsArr = new Array();
 let playerCoins = 0;
 let coin = "coin";
+
+let currLevel = 1;
+let levelsArr = new Array();
 
 function activateSpecial(special) {
 	if (special.type == coin) {
@@ -613,16 +629,21 @@ function activateSpecial(special) {
 		
 		special.hndl.style.backgroundColor = "lightgrey";
 		special.activated = true;
+	} else if (special.type == portal && !special.activated) {
+		currLevel++;
+		special.hndl.style.backgroundColor = "lime";
+		special.activated = true;
 	}
 }
 
 function anythingInterestingHappen() {
 	let player = boxArr[0];
+	let currCurrLevel = currLevel;
 	for (let i = 0; i < specialsArr.length; i++) {
 		let special = specialsArr[i];
-		if (canCollideVertically(player, special, up) &&
-			canCollideHorizontally(player, special, up)) {
-			if (special.type != coin && !hitHead(player, special))
+		if (canCollideVertically(player, special, player.direction) &&
+			canCollideHorizontally(player, special, player.direction)) {
+			if (special.type == coinBox && !hitHead(player, special))
 				continue;
 			activateSpecial(special);
 			if (special.type == coin) {
@@ -636,8 +657,11 @@ function anythingInterestingHappen() {
 	if (F(player.styl.top) + F(player.styl.height) == innerHeight) {
 		gameOver();
 		return true;
-	} else
-		return false;
+	} else if (currCurrLevel != currLevel) {
+		destroyEverything();
+		levelsArr[currLevel]();
+	}
+	return false;
 }
 
 function Coin(x, y) {

@@ -23,23 +23,84 @@ function initSpecials() {
 	let c = new Coin(720, 200);
 	let d = new CoinBox(290, 165);
 	let e = new Coin(15, 320);
+	// note: Special(hndl, x, y, width, height, type)
+	let f = new Special(null, 750, 325, 50, 50, portal);
 	return;
 }
 
-function loop2() {
+function initBoxes2() {
+	// level 2!
+	let player = boxArr[0];
+	player.hndl.style.top = "310px";
+	player.hndl.style.left = "855px";
+
+	let b = new Box(null, 0.0, 520, 350, 300, 10, "skyblue");
+	let c = new Box(null, 0.0, 830, 380, 100, 10, "skyblue");
+	let d = new Box(null, 0.0, 800, 250, 100, 10, "skyblue");
+	let e = new Box(null, 0.0, 70, 320, 250, 10, "skyblue");
+	let f = new Box(null, 0.0, 235, 270, 50, 10, "skyblue");
+	let g = new Box(null, 0.0, 270, 205, 50, 10, "skyblue");
+	let h = new Box(null, 0.0, 740, 290, 50, 10, "skyblue");
+	let i = new Box(null, 0.0, 500, 150, 300, 10, "skyblue");
+}
+
+function initSpecials2() {
+	let a = new CoinBox(50, 160);
+	let b = new CoinBox(100, 160);
+	let c = new CoinBox(150, 160);
+	let d = new Coin(750, 35);
+	let e = new Special(null, 845, 170, 50, 50, portal);
+}
+
+function level1(firstRun) {
+	currLevel = 1;
+	initBoxes(firstRun);
+	initSpecials();
+}
+
+function level2() {
+	currLevel = 2;
+	initBoxes2();
+	initSpecials2();
+}
+
+function initBoxes3() {
+	// to be continued ...
+}
+
+function initSpecials3() {
+	
+}
+
+function level3() {
+	if (currLevel != 3)
+		throw new Error("currLevel corruption");
+	initBoxes3();
+	initSpecials3();
+}
+
+function loop() {
 	handleInput();
 	calculateAnimations();
 	moveEverything();
 	if (anythingInterestingHappen()) {
-		initBoxes(false);
-		initSpecials();
+		level1(false);
 	}
-	requestAnimationFrame(loop2);
+	requestAnimationFrame(loop);
+}
+
+function initLevelsArr() {
+	levelsArr[0] = null;
+	levelsArr[1] = level1;
+	levelsArr[2] = level2;
+	levelsArr[3] = level3;
+	
+	currLevel = 1;
 }
 
 (function() {
 	initializeInput();
-	initBoxes(true);  // true: first time running
-	initSpecials();
-	loop2();
+	initLevelsArr();
+	level1(true);  // 'true' for level1() means first run of the game
+	loop();
 })();
