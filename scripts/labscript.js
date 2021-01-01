@@ -1,215 +1,106 @@
 //
 
-function canMoveHorizHowMuch(box1, dir) {
-	if (isAtLeftEdgeOfScreen(box1) && dir == left ||
-		isAtRightEdgeOfScreen(box1) && dir == right)
-		return zero;
-	let canMove = step;
-	if (dir == left)
-		canMove = -step;
-	for (box2 of boxArr) {
-		if (box1 == box2)
-			continue;
-		if (areCloseToTouching(box1, box2, dir) &&
-			canCollideHorizontally(box1, box2, dir)) {
-			let ret = Math.abs(distBetween(box1, box2, dir));
-			if (dir == right) {
-				if (F(box1.styl.left) < F(box2.styl.left) &&
-					Math.abs(ret) < Math.abs(canMove))  // box1->   box2
-					canMove = +ret;
-			} else if (dir == left) {
-				if (F(box2.styl.left) < F(box1.styl.left) &&
-					Math.abs(ret) < Math.abs(canMove))  // box2    <-box1
-					canMove = -ret;
-			}
-		}
-	}
-	if (isCloseToLeftEdgeOfScreen(box1) && dir == left)
-		return Math.min(canMove, F(box1.styl.left) - zero);
-	else if (isCloseToRightEdgeOfScreen(box1) && dir == right) {
-		let distToScreenEdge = innerWidth - F(box1.styl.left) - F(box1.styl.width);
-		return Math.min(canMove, distToScreenEdge);
-	}
-	return canMove;
-}
-
-function hitHead(box1, box2) {
-	let Atop = F(box1.styl.top);
-	let Btop = F(box2.styl.top);
-	let Abottom = Atop + F(box1.styl.height);
-	let Bbottom = Btop + F(box2.styl.height);
-	return Math.abs(Atop - Bbottom) < 2;
-}
-
-// return possible vertical movement
-function canMoveVertHowMuch(box1, dir) {
-	if (isAtBottomEdgeOfScreen(box1) && dir == down ||
-		isAtTopEdgeOfScreen(box1) && dir == up)
-		return zero;
+function initBoxes(firstRun) {
+	let a = boxArr[0];
+	if (firstRun)
+		a = new Box(document.querySelector("#box1"), 0.2);
+	a.pushable = true;
+	a.hndl.style.top = "20px";
+	a.hndl.style.left = "5px";
 	
-	let canMove = innerHeight;  // hack why innerheight?
-	for (box2 of boxArr) {
-		if (box1 == box2)
-			continue;
-		if (areCloseToTouching(box1, box2, dir) &&
-			canCollideVertically(box1, box2, dir)) {
-			if (hitHead(box1, box2) && dir == up)
-				return zero;
-			let mini = distBetween(box1, box2, dir);
-			let Atop = F(box1.styl.top);
-			let Btop = F(box2.styl.top);
-			let Abottom = Atop + F(box1.styl.height);
-			let Bbottom = Btop + F(box2.styl.height);
-			if (Atop <= Btop) {  // A is above B. hack: A == B, too.
-				if (dir == down && Math.abs(mini) < Math.abs(canMove))
-					canMove = mini;
-				if (dir == up && Abottom >= Btop &&
-					/*Math.abs(mini) < Math.abs(canMove)*/true)
-					canMove = -step;
-			} else if (Btop < Atop) {  // B is above A
-				if (dir == down)
-					continue;
-				if (dir == up && Math.abs(mini) < Math.abs(canMove))
-					canMove = -mini;
-			} else
-				throw new Error("unexpected box stacking");
-		}
-	}
-
-	if (isCloseToTopEdgeOfScreen(box1) && dir == up) {
-		let ret = -F(box1.styl.top);
-		if (Math.abs(ret) < Math.abs(canMove))
-			return ret;
-	} else if (isCloseToBottomEdgeOfScreen(box1) && box1.vy > 0) {
-		let ret = innerHeight - F(box1.styl.top) - F(box1.styl.height);
-		if (Math.abs(ret) < Math.abs(canMove))
-			return ret;
-	}
-	if (dir == up && isAtBottomEdgeOfScreen(box1) && step < Math.abs(canMove)) {
-		return -step;
-	} else if (dir == down && Math.abs(box1.vy + box1.ay) < Math.abs(canMove))
-		return box1.vy + box1.ay;
-	return canMove;
+	let b = new Box(null, 0.0, 0, 300, 500, 10, "skyblue");
+	let c = new Box(null, 0.0, 600, 250, 300, 10, "skyblue");
+	let d = new Box(null, 0.0, 375, 195, 100, 10, "skyblue");
+	let e = new Box(null, 0.0, 460, 400, 75, 10, "blue", "patrol");
 }
 
-function onSurface(box1) {
-	let box1Bottom = F(box1.styl.top) + F(box1.styl.height);
-	if (box1Bottom == innerHeight)  // on ground?
-		return true;
-	for (box2 of boxArr) {  // on another box?
-		if (box1 == box2)
-			continue;
-		let box2Top = F(box2.styl.top);
-		if (box1Bottom == box2Top && canCollideVertically(box1, box2, exact))
-			return true;
-	}
-	return false;
-}
-
-function maybeScheduleMoveRight() {
-	let wantMove = step;
-	let canMove = canMoveHorizHowMuch(boxArr[0], right);
-	if (Math.abs(canMove) < Math.abs(wantMove))
-		wantMove = canMove;
-	boxArr[0].vx = wantMove;
-}
-
-function maybeScheduleMoveLeft() {
-	let wantMove = -step;
-	let canMove = canMoveHorizHowMuch(boxArr[0], left);
-	if (Math.abs(canMove) < Math.abs(wantMove))
-		wantMove = canMove;
-	boxArr[0].vx = wantMove;
-}
-
-let wantJump = false;
-let alreadyJumped = false;
-
-function maybeJump() {
-	wantJump = true;
-}
-
-function handleInput () {
-	if (keyDdown) {
-		boxArr[0].direction = right;
-		maybeScheduleMoveRight();
-	} else if (keyAdown) {
-		boxArr[0].direction = left;
-		maybeScheduleMoveLeft();
-	} else {
-		boxArr[0].direction = "stationary";
-	}
+function initSpecials() {
+	document.querySelector("#playerCoins").innerText = "Coins: 0";
+	playerCoins = 0;
 	
-	if (keyWdown) {
-		maybeJump();
-	} else if (!keyWdown) {
-		wantJump = false;
-		alreadyJumped = false;
-	}
+	let a = new Coin(840, 200);
+	let b = new Coin(780, 200);
+	let c = new Coin(720, 200);
+	let d = new CoinBox(290, 165);
+	let e = new Coin(15, 320);
+	// note: Special(hndl, x, y, width, height, type)
+	let f = new Special(null, 750, 325, 50, 50, portal);
+	return;
 }
 
-function freefall(box) {
-	let wantVel = box.vy + box.ay;
-	let dir = wantVel >= 0 ? down : up;
-	let possibleVert = canMoveVertHowMuch(box, dir);
-	if (Math.abs(possibleVert) < Math.abs(wantVel))
-		wantVel = possibleVert;
-	box.vy = wantVel;
+function initBoxes2() {
+	// level 2!
+	let player = boxArr[0];
+	player.hndl.style.top = "310px";
+	player.hndl.style.left = "855px";
+
+	let b = new Box(null, 0.0, 520, 350, 300, 10, "skyblue");
+	let c = new Box(null, 0.0, 830, 380, 100, 10, "skyblue");
+	let d = new Box(null, 0.0, 800, 250, 100, 10, "skyblue");
+	let e = new Box(null, 0.0, 70, 320, 250, 10, "skyblue");
+	let f = new Box(null, 0.0, 235, 270, 50, 10, "skyblue");
+	let g = new Box(null, 0.0, 270, 205, 50, 10, "skyblue");
+	let h = new Box(null, 0.0, 740, 290, 50, 10, "skyblue");
+	let i = new Box(null, 0.0, 500, 150, 300, 10, "skyblue");
 }
 
-function calcAniForBox1() {
-	let box1 = boxArr[0];
-	if (wantJump == true && !alreadyJumped && onSurface(box1)) {
-		let wantVel = -5;
-		let possibleVert = canMoveVertHowMuch(box1, up);
-		if (Math.abs(possibleVert) < Math.abs(wantVel))
-			wantVel = possibleVert;
-		box1.vy = wantVel;
-		wantJump = false;
-		alreadyJumped = true;
-	} else {  // freefall
-		freefall(box1);
-	}
+function initSpecials2() {
+	let a = new CoinBox(50, 160);
+	let b = new CoinBox(100, 160);
+	let c = new CoinBox(150, 160);
+	let d = new Coin(750, 35);
+	let e = new Special(null, 845, 170, 50, 50, portal);
 }
 
-function calculateAnimations() {
-	let box1 = boxArr[0];
-	calcAniForBox1();  // player gets special treatment
-	for (let box of boxArr) {
-		if (box.behavior == "patrol") {
-			box.vx = canMoveHorizHowMuch(box, box.direction);
-			if (box.vx == 0)
-				if (box.direction == left)
-					box.direction = right;
-				else if (box.direction == right)
-					box.direction = left;
-		}
-		if (box != box1)
-			freefall(box);
-	}
+function level1(firstRun) {
+	currLevel = 1;
+	initBoxes(firstRun);
+	initSpecials();
+}
+
+function level2() {
+	currLevel = 2;
+	initBoxes2();
+	initSpecials2();
+}
+
+function initBoxes3() {
+	// to be continued ...
+}
+
+function initSpecials3() {
 	
-	// hack: special case for testing
-	let box3 = boxArr[2];
-	box3.vx = canMoveHorizHowMuch(box3, right);
 }
 
-function moveEverything() {
-	for (box of boxArr) {
-		box.hndl.style.top = (F(box.styl.top) + box.vy) + px;
-		box.hndl.style.left = (F(box.styl.left) + box.vx) + px;
-		box.vx = 0;
-	}
+function level3() {
+	if (currLevel != 3)
+		throw new Error("currLevel corruption");
+	initBoxes3();
+	initSpecials3();
 }
 
-function loop2() {
+function loop() {
 	handleInput();
 	calculateAnimations();
 	moveEverything();
-	requestAnimationFrame(loop2);
+	if (anythingInterestingHappen()) {
+		level1(false);
+	}
+	requestAnimationFrame(loop);
+}
+
+function initLevelsArr() {
+	levelsArr[0] = null;
+	levelsArr[1] = level1;
+	levelsArr[2] = level2;
+	levelsArr[3] = level3;
+	
+	currLevel = 1;
 }
 
 (function() {
 	initializeInput();
-	initBoxes();
-	loop2();
+	initLevelsArr();
+	level1(true);  // 'true' for level1() means first run of the game
+	loop();
 })();
