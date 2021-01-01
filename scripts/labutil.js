@@ -193,7 +193,7 @@ function canCollideVertically(box1, box2, direction) {
 	return (inBetween(left2, left1, right1) ||
 		(inBetween(left1, left2, right2) && inBetween(right1, left2, right2)) ||
 		inBetween(right2, left1, right1) ||
-		(left1 == left2 && right1 == right2));
+		left1 == left2 || right1 == right2);
 }
 
 // Register the input handlers.
@@ -260,7 +260,7 @@ function helper_canMoveHorizHowMuch(box1, box2, dir, canMove) {
 	let box1Bottom = F(box1.styl.top) + F(box1.styl.height);
 	let box2Top = F(box2.styl.top);
 	let box2Bottom = F(box2.styl.top) + F(box2.styl.height);
-	if (box1Bottom == box2Top || box1Top == box2Bottom)
+	if (Math.floor(box1Bottom) == Math.floor(box2Top) || box1Top == box2Bottom)
 		return canMove;
 	let ret = Math.abs(distBetween(box1, box2, dir));
 	if (dir == right) {
@@ -376,6 +376,15 @@ function onSurface(box1) {
 		if (box1Bottom == box2Top && canCollideVertically(box1, box2, exact))
 			return true;
 	}
+	for (box2 of specialsArr) {
+		if (box1 == box2)
+			throw new Error("something's very wrong ..");
+		if (box2.type == coinBox) {
+			let box2Top = F(box2.styl.top);
+			if (box1Bottom == box2Top && canCollideVertically(box1, box2, exact))
+				return true;
+		}
+	}
 	return false;
 }
 
@@ -419,6 +428,20 @@ function handleInput () {
 		wantJump = false;
 		alreadyJumped = false;
 	}
+}
+
+function gameOver() {
+	alert("Game Over!");
+	for (let i = 1; i < boxArr.length; i++) {
+		let hndl = boxArr[i].hndl;
+		hndl.parentNode.removeChild(hndl);
+	}
+	boxArr.splice(1, boxArr.length - 1);
+	for (spec of specialsArr) {
+		let hndl = spec.hndl;
+		hndl.parentNode.removeChild(hndl);
+	}
+	specialsArr.splice(0, specialsArr.length);
 }
 
 function freefall(box) {
@@ -530,9 +553,6 @@ function calculateAnimations() {
 		if (toMove != innerWidth)
 			box1.vx = toMove;
 	}
-	// hack: special case for testing
-	let box3 = boxArr[2];
-	box3.vx = canMoveHorizHowMuch(box3, right);
 }
 
 function moveEverything() {
@@ -541,4 +561,89 @@ function moveEverything() {
 		box.hndl.style.left = (F(box.styl.left) + box.vx) + px;
 		box.vx = 0;
 	}
+}
+
+function Special(hndl, x, y, width, height, type) {
+	this.hndl = hndl;
+	if (hndl == null) {
+		this.hndl = document.createElement("div");
+		document.body.appendChild(this.hndl);
+	}
+	this.hndl.style.left = x + px;
+	this.hndl.style.top = y + px;
+	this.hndl.style.width = width + px;
+	this.hndl.style.height = height + px;
+	this.hndl.style.position = "absolute";
+	this.type = type;
+	this.styl = getComputedStyle(this.hndl);
+	
+	if (this.type == coin) {
+		let text = document.createElement("div");
+		text.innerText = "$";
+		text.className = coin + "Text";
+		this.hndl.appendChild(text);
+		this.hndl.className = coin;
+	} else if (this.type == coinBox) {
+		let text = document.createElement("div");
+		text.innerText = "?";
+		text.className = "coinBoxText";
+		this.hndl.appendChild(text);
+		this.hndl.className = coinBox;
+		this.activated = false;
+	}
+	
+	specialsArr.push(this);
+}
+
+let coinBox = "coinBox";
+let specialsArr = new Array();
+let playerCoins = 0;
+let coin = "coin";
+
+function activateSpecial(special) {
+	if (special.type == coin) {
+		playerCoins++;
+	} else if (special.type == coinBox && !special.activated) {
+		let specialX = F(special.styl.left);
+		let specialY = F(special.styl.top);
+		let specialWidth = F(special.styl.width);
+		let specialHeight = F(special.styl.height);
+		let newCoin = new Special(null, specialX,
+			specialY - specialHeight, 50, 50, coin);
+		
+		special.hndl.style.backgroundColor = "lightgrey";
+		special.activated = true;
+	}
+}
+
+function anythingInterestingHappen() {
+	let player = boxArr[0];
+	for (let i = 0; i < specialsArr.length; i++) {
+		let special = specialsArr[i];
+		if (canCollideVertically(player, special, up) &&
+			canCollideHorizontally(player, special, up)) {
+			if (special.type != coin && !hitHead(player, special))
+				continue;
+			activateSpecial(special);
+			if (special.type == coin) {
+				special.hndl.parentNode.removeChild(special.hndl);
+				specialsArr.splice(i, 1);
+				i--;
+			}
+		}
+	}
+	document.querySelector("#playerCoins").innerText = "Coins: " + playerCoins;
+	if (F(player.styl.top) + F(player.styl.height) == innerHeight) {
+		gameOver();
+		return true;
+	} else
+		return false;
+}
+
+function Coin(x, y) {
+	Special.call(this, null, x, y, 50, 50, coin);
+}
+
+function CoinBox(x, y) {
+	Special.call(this, null, x, y, 50, 50, coinBox);
 }
