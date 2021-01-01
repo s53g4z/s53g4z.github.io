@@ -249,8 +249,8 @@ function Point(x, y) {
 	this.y = y;
 }
 
-function helper_canMoveHorizHowMuch(box1, box2, dir, canMove) {
-	if (box2.type == coin)
+function helper_canMoveHorizHowMuch(box1, box2, dir, canMove, ignorePlayer) {
+	if (box2.type == coin || box2 == boxArr[0] && ignorePlayer)
 		return canMove;
 	if (box1 == box2 || !areCloseToTouching(box1, box2, dir) ||
 		!canCollideHorizontally(box1, box2, dir))
@@ -275,7 +275,7 @@ function helper_canMoveHorizHowMuch(box1, box2, dir, canMove) {
 	return canMove;
 }
 
-function canMoveHorizHowMuch(box1, dir) {
+function canMoveHorizHowMuch(box1, dir, ignorePlayer) {
 	if (isAtLeftEdgeOfScreen(box1) && dir == left ||
 		isAtRightEdgeOfScreen(box1) && dir == right)
 		return zero;
@@ -283,7 +283,7 @@ function canMoveHorizHowMuch(box1, dir) {
 	if (dir == left)
 		canMove = -step;
 	for (box2 of boxArr) {  // maybe reduce canMove
-		canMove = helper_canMoveHorizHowMuch(box1, box2, dir, canMove);
+		canMove = helper_canMoveHorizHowMuch(box1, box2, dir, canMove, ignorePlayer);
 	}
 	for (box2 of specialsArr) {
 		canMove = helper_canMoveHorizHowMuch(box1, box2, dir, canMove);
@@ -450,12 +450,15 @@ function destroyEverything() {
 }
 
 function gameOver() {
+	//boxArr[0].hndl.style.backgroundColor = "rgba(0,0,0,0)";
 	alert("Game Over!");
 	destroyEverything();
 }
 
 function freefall(box) {
 	let wantVel = box.vy + box.ay;
+	if (wantVel == 0)
+		return;
 	let dir = wantVel >= 0 ? down : up;
 	let possibleVert = canMoveVertHowMuch(box, dir);
 	if (Math.abs(possibleVert) < Math.abs(wantVel))
@@ -508,28 +511,66 @@ function gonnaHitAnotherBox(box1, boxIgnore, dir) {
 	return ret;
 }
 
+function getBoxBelow(spec) {
+	for (box of boxArr) {
+		if (aboutEqual(F(box.styl.top), F(spec.styl.top) + F(spec.styl.height)))
+			return box;
+	}
+	return null;
+}
+
+// helper for calculateAnimations
+function patrolCalc(box, canFreeFall) {
+	if (box.behavior == "patrol") {
+		if (box.type == badguy) {
+			let spec = box;
+			let specLeft = F(spec.styl.left);
+			let specRight = specLeft + F(spec.styl.width);
+			let surface = getBoxBelow(spec);
+			if (surface) {
+				let surfaceLeft = F(surface.styl.left);
+				let surfaceRight = surfaceLeft + F(surface.styl.width);
+				if (box.direction == left && specLeft <= surfaceLeft + step || 
+					box.direction == right && specRight >= surfaceRight - step)
+					spec.vx = 0;
+				else
+					box.vx = canMoveHorizHowMuch(box, box.direction,
+						"ignorePlayer") / 3;
+			}
+		} else {
+			box.vx = canMoveHorizHowMuch(box, box.direction);
+		}
+		if (box.vx == 0)
+			if (box.direction == left) {
+				if (box.type == badguy)
+					box.hndl.querySelector(".badguyText").style.textAlign = "right";
+				box.direction = right;
+			} else if (box.direction == right) {
+				if (box.type == badguy)
+					box.hndl.querySelector(".badguyText").style.textAlign = "left";
+				box.direction = left;
+			}
+	} else if (box.behavior == "vertPatrol") {
+		box.vy = canMoveVertHowMuch(box, box.direction);
+		if (box.vy == 0 || box.vy == -0 || -box.vy == box.ay) {
+			if (box.direction == up)
+				box.direction = down;
+			else if (box.direction == down)
+				box.direction = up;
+		}
+	}
+	if (box != boxArr[0] && canFreeFall)
+		freefall(box);
+}
+
 function calculateAnimations() {
 	let box1 = boxArr[0];
 	calcAniForBox1();  // player gets special treatment
 	for (let box of boxArr) {  // patrol and freefall
-		if (box.behavior == "patrol") {
-			box.vx = canMoveHorizHowMuch(box, box.direction);
-			if (box.vx == 0)
-				if (box.direction == left)
-					box.direction = right;
-				else if (box.direction == right)
-					box.direction = left;
-		} else if (box.behavior == "vertPatrol") {
-			box.vy = canMoveVertHowMuch(box, box.direction);
-			if (box.vy == 0 || box.vy == -0 || -box.vy == box.ay) {
-				if (box.direction == up)
-					box.direction = down;
-				else if (box.direction == down)
-					box.direction = up;
-			}
-		}
-		if (box != box1)
-			freefall(box);
+		patrolCalc(box, true);
+	}
+	for (let spec of specialsArr) {
+		patrolCalc(spec, true);
 	}
 	for (let box1 of boxArr) {  // platforms carry pushable objs
 		if (!box1.pushable)
@@ -571,9 +612,17 @@ function moveEverything() {
 		box.hndl.style.left = (F(box.styl.left) + box.vx) + px;
 		box.vx = 0;
 	}
+	for (spec of specialsArr) {
+		if (spec.type != badguy)
+			continue;
+		spec.hndl.style.top = (F(spec.styl.top) + spec.vy) + px;
+		spec.hndl.style.left = (F(spec.styl.left) + spec.vx) + px;
+		spec.vx = 0;
+	}
 }
 
 let portal = "portal";
+let badguy = "badguy";
 
 function Special(hndl, x, y, width, height, type) {
 	this.hndl = hndl;
@@ -589,28 +638,33 @@ function Special(hndl, x, y, width, height, type) {
 	this.type = type;
 	this.styl = getComputedStyle(this.hndl);
 	
+	let text = document.createElement("div");
 	if (this.type == coin) {
-		let text = document.createElement("div");
 		text.innerText = "$";
-		text.className = coin + "Text";
-		this.hndl.appendChild(text);
+		text.className = "coinText";
 		this.hndl.className = coin;
 	} else if (this.type == coinBox) {
-		let text = document.createElement("div");
 		text.innerText = "?";
 		text.className = "coinBoxText";
-		this.hndl.appendChild(text);
 		this.hndl.className = coinBox;
 		this.activated = false;
 	} else if (this.type == portal) {
-		let text = document.createElement("div");
 		text.innerText = "+";
 		text.className = "portalText";
-		this.hndl.appendChild(text);
 		this.hndl.className = portal;
 		this.activated = false;
+	} else if (this.type == badguy) {
+		text.innerText = "@_@";
+		text.className = "badguyText";
+		this.hndl.className = badguy;
+		this.behavior = "patrol";
+		this.vx = step;
+		this.vy = 0;
+		this.ay = 0.3;
+		this.direction = right;
 	}
-	
+	this.hndl.appendChild(text);
+
 	specialsArr.push(this);
 }
 
@@ -631,7 +685,7 @@ function activateSpecial(special) {
 		let specialWidth = F(special.styl.width);
 		let specialHeight = F(special.styl.height);
 		let newCoin = new Special(null, specialX,
-			specialY - specialHeight, 50, 50, coin);
+			specialY - specialHeight - 5, 50, 50, coin);
 		
 		special.hndl.style.backgroundColor = "lightgrey";
 		special.activated = true;
@@ -639,28 +693,58 @@ function activateSpecial(special) {
 		currLevel++;
 		special.hndl.style.backgroundColor = "lime";
 		special.activated = true;
+	} else if (special.type == badguy) {
+		let player = boxArr[0];
+		let playerBottom = F(player.styl.top) + F(player.styl.height);
+		let specialTop = F(special.styl.top);
+		if (playerBottom != specialTop)
+			return true;
+		else {  // badguy has died
+			special.type = "deadBadguy";
+			special.hndl.style.top = (F(special.hndl.style.top) +
+				(F(special.hndl.style.height) / 2)) + px;
+			special.hndl.style.height = (F(special.hndl.style.height) / 2) + px;
+			special.hndl.querySelector(".badguyText").innerText = "x.x"
+			for (let i = 0; i < specialsArr.length; i++)
+				if (specialsArr[i] == special) {
+					setTimeout(function() {
+						specialsArr.splice(i, 1);
+					}, 200);
+					setTimeout(function() {
+						let trash = special.hndl;
+						trash.parentNode.removeChild(trash);
+					}, 2000);
+					break;
+				}
+		}
 	}
+	return false;
 }
 
 function anythingInterestingHappen() {
 	let player = boxArr[0];
 	let currCurrLevel = currLevel;
+	let playerDead = false;
 	for (let i = 0; i < specialsArr.length; i++) {
 		let special = specialsArr[i];
-		if (canCollideVertically(player, special, player.direction) &&
-			canCollideHorizontally(player, special, player.direction)) {
-			if (special.type == coinBox && !hitHead(player, special))
-				continue;
-			activateSpecial(special);
-			if (special.type == coin) {
-				special.hndl.parentNode.removeChild(special.hndl);
-				specialsArr.splice(i, 1);
-				i--;
-			}
+		if (!canCollideVertically(player, special, player.direction) ||
+			!canCollideHorizontally(player, special, player.direction))
+			continue;
+		if (special.type == coinBox && !hitHead(player, special))
+			continue;
+		if (activateSpecial(special)) {
+			playerDead = true;
+			break;
+		}
+		if (special.type == coin) {
+			special.hndl.parentNode.removeChild(special.hndl);
+			specialsArr.splice(i, 1);
+			i--;
 		}
 	}
 	document.querySelector("#playerCoins").innerText = "Coins: " + playerCoins;
-	if (F(player.styl.top) + F(player.styl.height) == innerHeight) {
+	if (F(player.styl.top) + F(player.styl.height) == innerHeight ||
+		playerDead) {
 		gameOver();
 		return true;
 	} else if (currCurrLevel != currLevel) {
@@ -672,8 +756,10 @@ function anythingInterestingHappen() {
 
 function Coin(x, y) {
 	Special.call(this, null, x, y, 50, 50, coin);
+	this.dummy = "";  // for geany
 }
 
 function CoinBox(x, y) {
 	Special.call(this, null, x, y, 50, 50, coinBox);
+	this.dummy = "";  // for geany
 }

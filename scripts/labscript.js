@@ -5,8 +5,9 @@ function initBoxes(firstRun) {
 	if (firstRun)
 		a = new Box(document.querySelector("#box1"), 0.2);
 	a.pushable = true;
-	a.hndl.style.top = "20px";
+	a.hndl.style.top = "40px";
 	a.hndl.style.left = "5px";
+	//a.hndl.style.backgroundColor = "";
 	
 	let b = new Box(null, 0.0, 0, 300, 500, 10, "skyblue");
 	let c = new Box(null, 0.0, 600, 250, 300, 10, "skyblue");
@@ -18,13 +19,14 @@ function initSpecials() {
 	document.querySelector("#playerCoins").innerText = "Coins: 0";
 	playerCoins = 0;
 	
-	let a = new Coin(840, 200);
-	let b = new Coin(780, 200);
-	let c = new Coin(720, 200);
+	let a = new Coin(840, 195);
+	let b = new Coin(780, 195);
+	let c = new Coin(720, 195);
 	let d = new CoinBox(290, 165);
 	let e = new Coin(15, 320);
 	// note: Special(hndl, x, y, width, height, type)
 	let f = new Special(null, 750, 325, 50, 50, portal);
+	let g = new Special(null, 395, 128, 50, 50, badguy);
 	return;
 }
 
@@ -46,20 +48,23 @@ function initBoxes2() {
 
 function initSpecials2() {
 	let a = new CoinBox(50, 160);
-	let b = new CoinBox(100, 160);
-	let c = new CoinBox(150, 160);
+	let b = new CoinBox(105, 160);
+	let c = new CoinBox(160, 160);
 	let d = new Coin(750, 35);
 	let e = new Special(null, 845, 170, 50, 50, portal);
+	let f = new Special(null, 550, 285, 50, 50, badguy);
 }
 
 function level1(firstRun) {
 	currLevel = 1;
+	document.getElementById("whatLevel").innerText = "Level " + currLevel;
 	initBoxes(firstRun);
 	initSpecials();
 }
 
 function level2() {
 	currLevel = 2;
+	document.getElementById("whatLevel").innerText = "Level " + currLevel;
 	initBoxes2();
 	initSpecials2();
 }
@@ -75,6 +80,7 @@ function initSpecials3() {
 function level3() {
 	if (currLevel != 3)
 		throw new Error("currLevel corruption");
+	document.getElementById("whatLevel").innerText = "Level " + currLevel;
 	initBoxes3();
 	initSpecials3();
 }
