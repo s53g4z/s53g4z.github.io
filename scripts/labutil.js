@@ -288,8 +288,14 @@ function canMoveHorizHowMuch(box1, dir) {
 	for (box2 of specialsArr) {
 		canMove = helper_canMoveHorizHowMuch(box1, box2, dir, canMove);
 	}
-	if (isCloseToLeftEdgeOfScreen(box1) && dir == left)
-		return Math.min(canMove, F(box1.styl.left) - zero);
+	if (isCloseToLeftEdgeOfScreen(box1) && dir == left) {
+		let box1Left = F(box1.styl.left);
+		if (Math.abs(canMove) < Math.abs(box1Left))
+			return canMove;
+		if (canMove < 0)
+			box1Left *= -1;
+		return box1Left;
+	}
 	else if (isCloseToRightEdgeOfScreen(box1) && dir == right) {
 		let distToScreenEdge = innerWidth - F(box1.styl.left) - F(box1.styl.width);
 		return Math.min(canMove, distToScreenEdge);
