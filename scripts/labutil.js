@@ -8,11 +8,24 @@ let up = "up";
 let down = "down";
 let px = "px";
 let step = 5;
-let border = 0;
+
+let playerCoins = 0;
+let wantJump = false;
+let alreadyJumped = false;
+let portal = "portal";
+let badguy = "badguy";
+let coinBox = "coinBox";
+let coin = "coin";
+
+let currLevel = 1;
+
 let keyWdown = false;
 let keyDdown = false;
 let keyAdown = false;
 let boxArr = new Array();
+let specialsArr = new Array();
+let levelsArr = new Array();
+
 
 function isAtBottomEdgeOfScreen(box) {
 	let boxBottom = F(box.styl.top) + F(box.styl.height);
@@ -153,10 +166,10 @@ function inBetween(line, top, bottom) {
 }
 
 function canCollideHorizontally(box1, box2, direction) {
-	let top1 = F(box1.styl.top) - border;
-	let bottom1 = top1 + border + F(box1.styl.height) + border;
-	let top2 = F(box2.styl.top) - border;
-	let bottom2 = top2 + border + F(box2.styl.height) + border;
+	let top1 = F(box1.styl.top);
+	let bottom1 = top1 + F(box1.styl.height);
+	let top2 = F(box2.styl.top);
+	let bottom2 = top2 + F(box2.styl.height);
 
 	if (direction == "down") {
 		top1 += box1.vy;
@@ -176,10 +189,10 @@ function canCollideHorizontally(box1, box2, direction) {
 }
 
 function canCollideVertically(box1, box2, direction) {
-	let left1 = F(box1.styl.left) - border;
-	let right1 = F(box1.styl.left) + F(box1.styl.width) + border;
-	let left2 = F(box2.styl.left) - border;
-	let right2 = F(box2.styl.left) + F(box2.styl.width) + border;
+	let left1 = F(box1.styl.left);
+	let right1 = F(box1.styl.left) + F(box1.styl.width);
+	let left2 = F(box2.styl.left);
+	let right2 = F(box2.styl.left) + F(box2.styl.width);
 	
 	if (direction == "left") {
 		left1 -= step;
@@ -409,9 +422,6 @@ function maybeScheduleMoveLeft() {
 	boxArr[0].vx = wantMove;
 }
 
-let wantJump = false;
-let alreadyJumped = false;
-
 function maybeJump() {
 	wantJump = true;
 }
@@ -621,9 +631,6 @@ function moveEverything() {
 	}
 }
 
-let portal = "portal";
-let badguy = "badguy";
-
 function Special(hndl, x, y, width, height, type) {
 	this.hndl = hndl;
 	if (hndl == null) {
@@ -668,14 +675,6 @@ function Special(hndl, x, y, width, height, type) {
 	specialsArr.push(this);
 }
 
-let coinBox = "coinBox";
-let specialsArr = new Array();
-let playerCoins = 0;
-let coin = "coin";
-
-let currLevel = 1;
-let levelsArr = new Array();
-
 function activateSpecial(special) {
 	if (special.type == coin) {
 		playerCoins++;
@@ -704,7 +703,8 @@ function activateSpecial(special) {
 			special.hndl.style.top = (F(special.hndl.style.top) +
 				(F(special.hndl.style.height) / 2)) + px;
 			special.hndl.style.height = (F(special.hndl.style.height) / 2) + px;
-			special.hndl.querySelector(".badguyText").innerText = "x.x"
+			special.hndl.querySelector(".badguyText").innerText = "x_x"
+			special.hndl.querySelector(".badguyText").style.paddingTop = "0%"
 			for (let i = 0; i < specialsArr.length; i++)
 				if (specialsArr[i] == special) {
 					setTimeout(function() {

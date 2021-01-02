@@ -85,7 +85,22 @@ function level3() {
 	initSpecials3();
 }
 
+let prevTime = 0;
+
 function loop() {
+	let currTime = Date.now();
+	if (currTime - prevTime < 1000 / 75) {  // not perfect, but ..
+		requestAnimationFrame(loop);
+		return;
+	}
+	prevTime = currTime;
+	
+	if (innerHeight < 420 || innerWidth < 960) {
+		alert("Please resize the window larger. Then, press OK.");
+		requestAnimationFrame(loop);
+		return;
+	}
+	
 	handleInput();
 	calculateAnimations();
 	moveEverything();
