@@ -29,9 +29,32 @@ function deterPrinting() {
 	});
 }
 
+// Make the link bar show and hide page elements on click.
+function quickLinksTabify() {
+	let links = document.getElementsByClassName("links");
+	for (let link of links) {
+		link.onclick = function() {
+			let tab1 = document.querySelector(".tab1");
+			tab1.style.display = "";
+			let tab2 = document.querySelector(".tab2");
+			tab2.style.display = "none";
+			return true;
+		}
+	}
+	let whoLink = document.getElementById("whoanchorlink");  // last link is new tab
+	whoLink.onclick = function() {
+		let tab1 = document.querySelector(".tab1");
+		tab1.style.display = "none";
+		let tab2 = document.querySelector(".tab2");
+		tab2.style.display = "inherit";
+		return true;
+	}
+}
+
 // main()?
 (function() {
 	fixScrollTopBtn();
 	disableLinks();
 	deterPrinting();
+	quickLinksTabify();
 })()

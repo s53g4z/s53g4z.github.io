@@ -1,6 +1,7 @@
 html {
 	font-family: Arial;
 	font-size: 14px;
+	scroll-behavior: smooth;
 }
 
 h1 {
@@ -50,19 +51,9 @@ div {
 	line-height: 30px;
 }
 
-hr + div { /* select div only if it comes directly after a sister hr */
-	font-size: 10px;
-	line-height: 10px;
-}
-
-hr {
-	height: 10px;
-	border: 5px solid black;
-}
-
 #linkbar {
 	border: 2px solid navy;
-	margin-bottom: 40px;
+	margin-bottom: 0px;
 	padding-left: 1vw;
 	padding-right: 1vw;
 }
@@ -77,12 +68,11 @@ hr {
 }
 
 .content{
-	font-family: Arial;
 	color: black;
 	display: flex;
 	padding: 1vw;
 	margin: 5vw;
-	border: 1px solid blue;
+	border: 1px solid gray;
 	border-radius: 1vw
 }
 
@@ -107,4 +97,22 @@ hr {
 
 #tos {
 	width: 50%;
+}
+
+.tab2 {
+	display: none;
+	margin: 3vw;
+}
+
+@keyframes fadeDiv {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.tab1,.tab2 {
+	animation: fadeDiv 500ms ease-in-out both;
 }
