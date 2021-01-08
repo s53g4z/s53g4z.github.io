@@ -95,7 +95,7 @@ function loop() {
 	}
 	prevTime = currTime;
 	
-	if (innerHeight < 420 || innerWidth < 960) {
+	if (innerHeight < bottomEdge || innerWidth < rightEdge) {
 		alert("Please resize the window larger. Then, press OK.");
 		requestAnimationFrame(loop);
 		return;

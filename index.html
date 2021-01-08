@@ -2,438 +2,82 @@
 <html lang="en-US">
 	<head>
 		<meta charset="utf-8">
-		<title>127_0_0_2 page</title>
+		<title>Page Title</title>
 		<link rel="icon" href="images/favicon.png">
 		<link rel="stylesheet" href="styles/style.css">
 		<script src="scripts/script.js" defer></script>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	</head>
 <body>
-	<div id="mousecoordinates">
-	Your cursor is at ...
-	</div>
 	<h1>Page Title</h1>
-	<div id="linkbar">
-		<a href="tic.html" class="links">Tic-Tac-Toe game</a>
-		<a href="tumblrapi.html" class="links">Tumblr Profile Picture Search</a>
-		<a href="nasaapi.html" class="links">NASA APOD Search</a>
-		<a href="i.html" class="links">iTunes Search</a>
-		<a href="lab.html" class="links">Lab page</a>
+	<div id="linkbar">Quick Links: 
+		<a href="#ticanchor" class="links">Tic-Tac-Toe game</a>
+		<a href="#tumblrapianchor" class="links">Tumblr Profile Picture Search</a>
+		<a href="#nasaapianchor" class="links">NASA APOD Search</a>
+		<a href="#ianchor" class="links">iTunes Search</a>
+		<a href="#labanchor" class="links">Lab page</a>
 	</div>
-	<a id="imglink" href="" target="_blank">
-	<img src="images/img1.png" alt="image 1">
+	
+	<a href="tic.html" id="ticanchor">
+	<div class="content">
+		<span class="left">
+		<img src="images/ttt.png">
+		</span>
+		<span class="right">
+		Play a game of tic-tac-toe in your web browser with a friend!
+		</span>
+	</div>
 	</a>
-	<div id="maincontent"><br>The image above shows an integral expression.
-		(The answer is <strong>x<sup>3</sup>y + C</strong>.)
-		<ul>
-			<li>Since the integration will be done with respect to x,
-				the y variable is treated as a constant.</li>
-			<li>The integral of 3x<sup>2</sup> is x<sup>3</sup>.</li>
-			<li>The derivative of a constant is <em>zero</em>.</li>
-		</ul>
-	See Wikipedia for more details: <!-- Contiguous whitespace is compressed. -->
-		<a id="wiki" href="https://en.wikipedia.org/wiki/Integral"
-			title="&quot;Wikipedia&quot;: Integral">here</a>
+	
+	<a href="tumblrapi.html" id="tumblrapianchor">
+	<div class="content">
+		<div class="left">
+		<img src="images/tumblr1.png">
+		</div>
+		<div class="right">
+		Search for the profile pictures of Tumblr users!
+		</div>
 	</div>
-	<div id="inputboxes">
-		<br>Enabled input  box:<input type="text">
-		<br>Disabled input box:<input type="text" disabled>
+	</a>
+	
+	<a href="nasaapi.html" id="nasaapianchor">
+	<div class="content">
+		<div class="left">
+		<img src="images/nasaapod1.png">
+		</div>
+		<div class="right">
+		Browse through NASA's Astronomy Picture of the Day archives!
+		</div>
 	</div>
-	<hr id="pactoggle">
-	<button id="spawncanvas"></button>
-	<div id="pacman">
-		a52dec 0.7.4-11<br>
-		aalib 1.4rc5-14<br>
-		acl 2.2.53-3<br>
-		acpi 1.7-3<br>
-		adobe-source-code-pro-fonts 2.032ro+1.052it+1.012var-1<br>
-		adobe-source-han-serif-otc-fonts 1.001-3<br>
-		adwaita-icon-theme 3.38.0-1<br>
-		alsa-lib 1.2.4-3<br>
-		alsa-plugins 1:1.2.2-2<br>
-		alsa-topology-conf 1.2.4-2<br>
-		alsa-ucm-conf 1.2.4-2<br>
-		alsa-utils 1.2.4-2<br>
-		aom 2.0.0-1<br>
-		archlinux-keyring 20201028-1<br>
-		argon2 20190702-3<br>
-		at-spi2-atk 2.38.0-1<br>
-		at-spi2-core 2.38.0-1<br>
-		atk 2.36.0-1<br>
-		attr 2.4.48-3<br>
-		audacity 1:2.4.1-4<br>
-		audit 2.8.5-9<br>
-		avahi 0.8+15+ge8a3dd0-3<br>
-		babl 0.1.82-1<br>
-		bash 5.0.018-2<br>
-		bc 1.07.1-4<br>
-		binutils 2.35.1-1<br>
-		blas 3.9.0-3<br>
-		boost-libs 1.72.0-4<br>
-		brotli 1.0.9-4<br>
-		bzip2 1.0.8-4<br>
-		ca-certificates 20181109-4<br>
-		ca-certificates-mozilla 3.59-1<br>
-		ca-certificates-utils 20181109-4<br>
-		cairo 1.17.4-2<br>
-		cantarell-fonts 1:0.201-1<br>
-		cblas 3.9.0-3<br>
-		cdrtools 3.02a09-4<br>
-		chromium 87.0.4280.88-1<br>
-		cifs-utils 6.11-1<br>
-		cmake 3.19.1-2<br>
-		colord 1.4.5-1<br>
-		confuse 3.3-2<br>
-		coreutils 8.32-1<br>
-		cracklib 2.9.7-2<br>
-		cryptsetup 2.3.4-1<br>
-		curl 7.73.0-1<br>
-		dav1d 0.7.1-1<br>
-		db 5.3.28-5<br>
-		dbus 1.12.20-1<br>
-		dbus-glib 0.110-2<br>
-		dconf 0.38.0-1<br>
-		desktop-file-utils 0.26-1<br>
-		device-mapper 2.02.187-3<br>
-		dhcpcd 9.3.4-1<br>
-		diffutils 3.7-3<br>
-		dnssec-anchors 20190629-3<br>
-		dosfstools 4.1-3<br>
-		e2fsprogs 1.45.6-3<br>
-		efibootmgr 17-2<br>
-		efivar 37-4<br>
-		elfutils 0.181-1<br>
-		enca 1.19-4<br>
-		ethtool 1:5.9-1<br>
-		exiv2 0.27.3-1<br>
-		expat 2.2.10-2<br>
-		faac 1.30-2<br>
-		faad2 2.10.0-1<br>
-		ffmpeg 2:4.3.1-3<br>
-		fftw 3.3.8-3<br>
-		file 5.39-1<br>
-		filesystem 2020.09.03-1<br>
-		findutils 4.7.0-2<br>
-		flac 1.3.3-2<br>
-		fltk 1.3.5-4<br>
-		fontconfig 2:2.13.91+48+gfcb0420-2<br>
-		freeglut 3.2.1-2<br>
-		freetype2 2.10.4-1<br>
-		fribidi 1.0.10-1<br>
-		gawk 5.1.0-1<br>
-		gc 8.0.4-4<br>
-		gcc 10.2.0-4<br>
-		gcc-libs 10.2.0-4<br>
-		gd 2.3.0-1<br>
-		gdb 10.1-4<br>
-		gdb-common 10.1-4<br>
-		gdbm 1.18.1-3<br>
-		gdk-pixbuf2 2.42.2-1<br>
-		geany 1.37-1<br>
-		gegl 0.4.26-1<br>
-		gettext 0.21-1<br>
-		ghex 3.18.4-2<br>
-		giflib 5.2.1-2<br>
-		gimp 2.10.22-1<br>
-		git 2.29.2-1<br>
-		glew 2.2.0-2<br>
-		glib-networking 2.66.0-1<br>
-		glib2 2.66.3-1<br>
-		glibc 2.32-5<br>
-		glslang 11.0.0-1<br>
-		glu 9.0.1-2<br>
-		gmp 6.2.0-1<br>
-		gnupg 2.2.24-1<br>
-		gnutls 3.7.0-1<br>
-		gobject-introspection-runtime 1.66.1-3<br>
-		gpgme 1.15.0-2<br>
-		gpm 1.20.7.r38.ge82d1a6-3<br>
-		graphite 1:1.3.14-1<br>
-		grep 3.6-1<br>
-		groff 1.22.4-3<br>
-		gsettings-desktop-schemas 3.38.0-1<br>
-		gsfonts 20200910-1<br>
-		gsm 1.0.19-1<br>
-		gst-plugins-base-libs 1.18.2-1<br>
-		gstreamer 1.18.2-1<br>
-		gtk-update-icon-cache 1:3.24.24-1<br>
-		gtk-vnc 1.0.0-2<br>
-		gtk2 2.24.32-2<br>
-		gtk3 1:3.24.24-1<br>
-		guile 2.2.6-2<br>
-		gzip 1.10-3<br>
-		harfbuzz 2.7.2-1<br>
-		hdparm 9.58-3<br>
-		hicolor-icon-theme 0.17-2<br>
-		hidapi 0.10.1-1<br>
-		htop 3.0.3-1<br>
-		hunspell 1.7.0-3<br>
-		hunspell-en_US 2019.10.06-1<br>
-		hwids 20200813.1-1<br>
-		hwloc 2.2.0-1<br>
-		iana-etc 20201012-1<br>
-		icu 67.1-1<br>
-		imagemagick 7.0.10.46-1<br>
-		imlib2 1.7.0-1<br>
-		inetutils 1.9.4-8<br>
-		intel-gmmlib 20.3.3-1<br>
-		intel-media-driver 20.4.3-1<br>
-		intel-media-sdk 20.5.0-1<br>
-		intel-ucode 20201118-1<br>
-		iproute2 5.9.0-1<br>
-		iptables 1:1.8.6-1<br>
-		iputils 20200821-1<br>
-		iso-codes 4.5.0-1<br>
-		iw 5.9-1<br>
-		jack 0.125.0-9<br>
-		jansson 2.13.1-1<br>
-		jasper 2.0.19-1<br>
-		jfsutils 1.1.15-7<br>
-		js78 78.5.0-2<br>
-		json-c 0.15-1<br>
-		json-glib 1.6.0-1<br>
-		jsoncpp 1.9.4-1<br>
-		jwm 2.3.7-3<br>
-		kbd 2.3.0-2<br>
-		keyutils 1.6.3-1<br>
-		kmod 27-2<br>
-		krb5 1.18.2-1<br>
-		l-smash 2.14.5-2<br>
-		lame 3.100-3<br>
-		lapack 3.9.0-3<br>
-		lcms2 2.11-2<br>
-		ldb 1:2.2.0-3<br>
-		ldns 1.7.1-2<br>
-		leafpad 0.8.18.1-9<br>
-		lensfun 0.3.95-4<br>
-		less 563-1<br>
-		licenses 20200427-1<br>
-		lilv 0.24.10-3<br>
-		linux 5.9.13.arch1-1<br>
-		linux-api-headers 5.8-1<br>
-		linux-firmware 20201120.bc9cd0b-1<br>
-		linux-lts 5.4.82-1<br>
-		lirc 1:0.10.1-8<br>
-		llvm-libs 11.0.0-4<br>
-		lm_sensors 3.6.0-2<br>
-		lmdb 0.9.27-1<br>
-		logrotate 3.17.0-1<br>
-		lsof 4.94.0-1<br>
-		lua52 5.2.4-5<br>
-		lua53 5.3.6-1<br>
-		luajit 2.0.5-3<br>
-		luit 20201003-1<br>
-		lvm2 2.02.187-3<br>
-		lz4 1:1.9.2-2<br>
-		lzo 2.10-3<br>
-		make 4.3-3<br>
-		man-db 2.9.3-1<br>
-		man-pages 5.09-2<br>
-		mdadm 4.1-2<br>
-		mediainfo 20.08-1<br>
-		mesa 20.3.0-3<br>
-		mesa-demos 8.4.0-4<br>
-		metis 5.1.0.p10-1<br>
-		minizip 1:1.2.11-4<br>
-		mkinitcpio 29-1<br>
-		mkinitcpio-busybox 1.31.1-2<br>
-		mpfr 4.1.0-1<br>
-		mpg123 1.26.3-2<br>
-		mplayer 38157-3<br>
-		mpv 1:0.33.0-3<br>
-		mtdev 1.1.6-1<br>
-		mujs 1.0.9-1<br>
-		mypaint-brushes1 1.3.1-1<br>
-		nano 5.4-1<br>
-		ncurses 6.2-1<br>
-		netctl 1.24-1<br>
-		nettle 3.6-1<br>
-		nftables 1:0.9.7-3<br>
-		nmap 7.91-1<br>
-		npth 1.6-2<br>
-		nspr 4.29-1<br>
-		nss 3.59-1<br>
-		numactl 2.0.14-1<br>
-		onboard 1.4.1-6<br>
-		openal 1.21.0-1<br>
-		openbsd-netcat 1.217_2-1<br>
-		opencore-amr 0.1.5-5<br>
-		openexr 2.5.3-3<br>
-		openjpeg2 2.3.1-2<br>
-		openmpi 4.0.5-2<br>
-		openresolv 3.11.0-1<br>
-		openssh 8.4p1-2<br>
-		openssl 1.1.1.h-1<br>
-		opus 1.3.1-2<br>
-		orc 0.4.32-1<br>
-		p11-kit 0.23.21-1<br>
-		pacman 5.2.2-1<br>
-		pacman-mirrorlist 20201205-1<br>
-		pam 1.5.0-2<br>
-		pambase 20200721.1-2<br>
-		pango 1:1.48.0-1<br>
-		patch 2.7.6-8<br>
-		pciutils 3.7.0-1<br>
-		pcre 8.44-1<br>
-		pcre2 10.35-1<br>
-		perl 5.32.0-3<br>
-		perl-error 0.17029-2<br>
-		perl-mailtools 2.21-4<br>
-		perl-timedate 2.33-2<br>
-		physlock 13-2<br>
-		pinentry 1.1.0-5<br>
-		pixman 0.40.0-1<br>
-		pkgconf 1.7.3-1<br>
-		polkit 0.118-1<br>
-		poppler 20.12.1-1<br>
-		poppler-data 0.4.10-1<br>
-		poppler-glib 20.12.1-1<br>
-		popt 1.18-1<br>
-		portsmf 234-2<br>
-		powertop 2.13-1<br>
-		procps-ng 3.3.16-2<br>
-		psmisc 23.3-2<br>
-		python 3.9.0-1<br>
-		python-appdirs 1.4.4-3<br>
-		python-cairo 1.20.0-3<br>
-		python-dbus 1.2.16-3<br>
-		python-dbus-common 1.2.16-3<br>
-		python-gobject 3.38.0-3<br>
-		python-html2text 2020.1.16-3<br>
-		python-numpy 1.19.4-3<br>
-		python-ordered-set 4.0.2-3<br>
-		python-packaging 20.7-1<br>
-		python-pyparsing 2.4.7-3<br>
-		python-scipy 1.5.4-3<br>
-		python-setuptools 1:50.3.2-4<br>
-		python-six 1.15.0-3<br>
-		python2 2.7.18-2<br>
-		qemu-headless 5.1.0-3<br>
-		rav1e 0.3.4-1<br>
-		re2 1:20201001-1<br>
-		readline 8.0.004-1<br>
-		recode 3.7.8-1<br>
-		reiserfsprogs 3.6.27-3<br>
-		rest 0.8.1-3<br>
-		rhash 1.4.0-1<br>
-		rsync 3.2.3-1<br>
-		rtmpdump 1:2.4.r96.fa8646d-6<br>
-		rubberband 1.9-1<br>
-		screen 4.8.0-2<br>
-		sdl 1.2.15-14<br>
-		sdl2 2.0.12-3<br>
-		sdl_image 1.2.12-7<br>
-		sdl_mixer 1.2.12-8<br>
-		seabios 1.14.0-1<br>
-		sed 4.8-1<br>
-		serd 0.30.6-1<br>
-		shaderc 2020.3-1<br>
-		shadow 4.8.1-4<br>
-		shared-mime-info 2.0+1+g6bf9e4f-2<br>
-		sl 5.02-6<br>
-		smbclient 4.13.2-3<br>
-		smpeg 0.4.5-5<br>
-		snappy 1.1.8-2<br>
-		sord 0.16.6-1<br>
-		sound-theme-freedesktop 0.8-4<br>
-		soundtouch 2.2-1<br>
-		source-highlight 3.1.9-2<br>
-		speex 1.2.0-3<br>
-		speexdsp 1.2.0-2<br>
-		spice 0.14.3-2<br>
-		spirv-tools 2020.4-1<br>
-		sqlite 3.34.0-1<br>
-		sratom 0.6.6-1<br>
-		srt 1.4.2-1<br>
-		strace 5.9-1<br>
-		suil 0.10.8-1<br>
-		suitesparse 5.8.1-1<br>
-		sxhkd 0.6.2-1<br>
-		sxiv 26-1<br>
-		sysfsutils 2.1.0-11<br>
-		systemd 247.1-3<br>
-		systemd-libs 247.1-3<br>
-		systemd-sysvcompat 247.1-3<br>
-		talloc 2.3.1-5<br>
-		tar 1.32-3<br>
-		tbb 2020.3-1<br>
-		tdb 1.4.3-4<br>
-		tevent 1:0.10.2-3<br>
-		texinfo 6.7-3<br>
-		thin-provisioning-tools 0.9.0-1<br>
-		tigervnc 1.11.0-6<br>
-		tlp 1.3.1-2<br>
-		tracker3 3.0.1-1<br>
-		ttf-dejavu 2.37+18+g9b5d1b2f-2<br>
-		ttf-liberation 2.1.1-1<br>
-		twolame 0.4.0-2<br>
-		tzdata 2020d-1<br>
-		uchardet 0.0.7-1<br>
-		unzip 6.0-14<br>
-		usbredir 0.8.0-2<br>
-		usbutils 013-1<br>
-		util-linux 2.36.1-4<br>
-		util-linux-libs 2.36.1-4<br>
-		v4l-utils 1.20.0-1<br>
-		valgrind 3.16.1-1<br>
-		vamp-plugin-sdk 2.10.0-1<br>
-		vde2 2.3.2-16<br>
-		vi 1:070224-4<br>
-		vid.stab 1.1-3<br>
-		vmaf 1.5.3-1<br>
-		vte-common 0.62.1-1<br>
-		vte3 0.62.1-1<br>
-		vulkan-icd-loader 1.2.158-1<br>
-		wayland 1.18.0-2<br>
-		wayland-protocols 1.20-1<br>
-		wget 1.20.3-3<br>
-		which 2.21-5<br>
-		wpa_supplicant 2:2.9-7<br>
-		wxgtk-common 3.0.5.1-1<br>
-		wxgtk3 3.0.5.1-1<br>
-		x264 3:0.160.r3011.cde9a93-1<br>
-		x265 3.4-1<br>
-		xbitmaps 1.1.2-2<br>
-		xcb-proto 1.14.1-3<br>
-		xcb-util-keysyms 0.4.0-3<br>
-		xdg-utils 1.1.3+19+g9816ebb-1<br>
-		xdotool 3.20160805.1-3<br>
-		xf86-input-libinput 0.30.0-1<br>
-		xfsprogs 5.8.0-1<br>
-		xkcdpass 1.17.3-3<br>
-		xkeyboard-config 2.31-1<br>
-		xorg-fonts-encodings 1.0.5-2<br>
-		xorg-server 1.20.10-1<br>
-		xorg-server-common 1.20.10-1<br>
-		xorg-setxkbmap 1.3.2-2<br>
-		xorg-xauth 1.1-2<br>
-		xorg-xev 1.2.4-1<br>
-		xorg-xeyes 1.1.2-2<br>
-		xorg-xhost 1.0.8-2<br>
-		xorg-xinit 1.4.1-3<br>
-		xorg-xinput 1.6.3-2<br>
-		xorg-xkbcomp 1.4.4-1<br>
-		xorg-xmodmap 1.0.10-2<br>
-		xorg-xprop 1.2.5-1<br>
-		xorg-xrandr 1.5.1-2<br>
-		xorg-xrdb 1.2.0-2<br>
-		xorg-xset 1.2.4-2<br>
-		xorg-xsetroot 1.1.2-2<br>
-		xorg-xwininfo 1.1.5-2<br>
-		xorgproto 2020.1-1<br>
-		xterm 362-1<br>
-		xvidcore 1.3.7-2<br>
-		xxhash 0.8.0-1<br>
-		xz 5.2.5-1<br>
-		youtube-dl 2020.12.07-1<br>
-		zip 3.0-9<br>
-		zita-alsa-pcmi 0.3.2-3<br>
-		zita-resampler 1.6.2-3<br>
-		zlib 1:1.2.11-4<br>
-		zstd 1.4.5-1<br>
+	</a>
+	
+	<a href="i.html" id="ianchor">
+	<div class="content">
+		<div class="left">
+		<img src="images/itunes1.png">
+		</div>
+		<div class="right">
+		Search the iTunes store!
+		</div>
 	</div>
-	<pre id="topbtn">Back to <a id="toplink" href="#top">top</a>.</pre>
+	</a>
+	
+	<a href="lab.html" id="labanchor">
+	<div class="content">
+		<div class="left">
+		<img src="images/lab1.png">
+		</div>
+		<div class="right">
+		Experimental content. Currently an unfinished Mario-style platformer game.
+		</div>
+	</div>
+	</a>
+	
+	<div id="bottomtext">
+	<div id="topbtn">Back to <a id="toplink" href="#top">top</a>.</div>
 	<div id="tos">
 		<a href="tos.html">Terms of Use</a>
+	</div>
 	</div>
 </body>
 </html>

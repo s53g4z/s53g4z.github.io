@@ -26,10 +26,13 @@ let boxArr = new Array();
 let specialsArr = new Array();
 let levelsArr = new Array();
 
+let rightEdge = 960;
+let bottomEdge = 420;
+let topEdge = leftEdge = 0;
 
 function isAtBottomEdgeOfScreen(box) {
 	let boxBottom = F(box.styl.top) + F(box.styl.height);
-	return boxBottom == innerHeight;
+	return boxBottom == bottomEdge;
 }
 
 function isAtTopEdgeOfScreen(box) {
@@ -42,7 +45,7 @@ function isCloseToTopEdgeOfScreen(box) {
 
 function isCloseToBottomEdgeOfScreen(box) {
 	let boxBottom = F(box.styl.top) + F(box.styl.height);
-	return innerHeight - boxBottom < Math.abs(box.vy);
+	return bottomEdge - boxBottom < Math.abs(box.vy);
 }
 
 function areTouching(box1, box2) {
@@ -136,7 +139,7 @@ function isAtLeftEdgeOfScreen(box) {
 
 function isAtRightEdgeOfScreen(box) {
 	let boxRight = F(box.styl.left) + F(box.styl.width);
-	return boxRight == innerWidth;
+	return boxRight == rightEdge;
 }
 
 function isCloseToLeftEdgeOfScreen(box) {
@@ -146,7 +149,7 @@ function isCloseToLeftEdgeOfScreen(box) {
 
 function isCloseToRightEdgeOfScreen(box) {
 	let boxRight = F(box.styl.left) + F(box.styl.width);
-    return innerWidth - boxRight < step;
+    return rightEdge - boxRight < step;
 }
 
 // float-ify
@@ -310,7 +313,7 @@ function canMoveHorizHowMuch(box1, dir, ignorePlayer) {
 		return box1Left;
 	}
 	else if (isCloseToRightEdgeOfScreen(box1) && dir == right) {
-		let distToScreenEdge = innerWidth - F(box1.styl.left) - F(box1.styl.width);
+		let distToScreenEdge = rightEdge - F(box1.styl.left) - F(box1.styl.width);
 		return Math.min(canMove, distToScreenEdge);
 	}
 	return canMove;
@@ -359,7 +362,7 @@ function canMoveVertHowMuch(box1, dir) {
 		isAtTopEdgeOfScreen(box1) && dir == up)
 		return zero;
 	
-	let canMove = innerHeight;
+	let canMove = bottomEdge;
 	for (box2 of boxArr) {
 		canMove = helper_canMoveVertHowMuch(box1, box2, dir, canMove);
 	}
@@ -372,7 +375,7 @@ function canMoveVertHowMuch(box1, dir) {
 		if (Math.abs(ret) < Math.abs(canMove))
 			return ret;
 	} else if (isCloseToBottomEdgeOfScreen(box1) && box1.vy > 0) {
-		let ret = innerHeight - F(box1.styl.top) - F(box1.styl.height);
+		let ret = bottomEdge - F(box1.styl.top) - F(box1.styl.height);
 		if (Math.abs(ret) < Math.abs(canMove))
 			return ret;
 	}
@@ -385,7 +388,7 @@ function canMoveVertHowMuch(box1, dir) {
 
 function onSurface(box1) {
 	let box1Bottom = F(box1.styl.top) + F(box1.styl.height);
-	if (box1Bottom == innerHeight)  // on ground?
+	if (box1Bottom == bottomEdge)  // on ground?
 		return true;
 	for (box2 of boxArr) {  // on another box?
 		if (box1 == box2)
@@ -501,7 +504,7 @@ function whichBoxAbove(box1, box2) {
 
 // dont reuse this function!
 function gonnaHitAnotherBox(box1, boxIgnore, dir) {
-	let ret = innerWidth;
+	let ret = rightEdge;
 	for (let box2 of boxArr) {
 		if (box1 == box2 || box2 == boxIgnore)
 			continue;
@@ -513,7 +516,7 @@ function gonnaHitAnotherBox(box1, boxIgnore, dir) {
 				dir == right && left1 > left2)
 				continue;
 			let newRet1 = distBetween(box1, box2, dir);
-			let newRet2 = innerWidth;
+			let newRet2 = rightEdge;
 			if (Math.min(newRet1, newRet2) < ret)
 				ret = Math.min(newRet1, newRet2);
 		}
@@ -585,7 +588,7 @@ function calculateAnimations() {
 	for (let box1 of boxArr) {  // platforms carry pushable objs
 		if (!box1.pushable)
 			continue;
-		let toMove = innerWidth;
+		let toMove = rightEdge;
 		for (let box2 of boxArr) {
 			if (box1 == box2 || !areCloseToTouching(box1, box2, exact) ||
 				!areTouching(box1, box2))
@@ -601,8 +604,8 @@ function calculateAnimations() {
 			if (dir == left && left1 < toMove)
 				toMove = F(box1.styl.left);
 			let right1 = left1 + F(box1.styl.width);
-			if (dir == right && innerWidth - right1 < toMove)
-				toMove = innerWidth - right1;
+			if (dir == right && rightEdge - right1 < toMove)
+				toMove = rightEdge - right1;
 				
 			let total = box1.vx + box2.vx;
 			let smolMove = gonnaHitAnotherBox(box1, box2, dir);
@@ -611,7 +614,7 @@ function calculateAnimations() {
 			if (Math.abs(total) < Math.abs(toMove))
 				toMove = total;
 		}
-		if (toMove != innerWidth)
+		if (toMove != rightEdge)
 			box1.vx = toMove;
 	}
 }
@@ -743,7 +746,7 @@ function anythingInterestingHappen() {
 		}
 	}
 	document.querySelector("#playerCoins").innerText = "Coins: " + playerCoins;
-	if (F(player.styl.top) + F(player.styl.height) == innerHeight ||
+	if (F(player.styl.top) + F(player.styl.height) == bottomEdge ||
 		playerDead) {
 		gameOver();
 		return true;

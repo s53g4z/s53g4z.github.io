@@ -6,15 +6,15 @@ html {
 h1 {
 	font-size: 42px;
 	text-align: center;
-	background-color: violet;
+	background-color: skyblue;
 	margin: 35px 15%;
 	padding: 5px 5px;
-	border: 5px solid purple;
+	border: 5px solid blue;
 }
 
 h1:hover {
 	letter-spacing: 30px;
-	border: 5px dashed purple;
+	border: 5px dashed navy;
 	text-shadow: 10px 5px 10px black;
 }
 
@@ -33,22 +33,13 @@ body {
 img {
 	display: block;
 	border: 5px solid grey;
+	width: 50%;
 }
 
 #imglink {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-}
-
-#pacman:hover {
-	letter-spacing: 20px;
-	text-align: right;
-}
-
-#inputboxes {
-	font-family: monospace;
-	color: navy;
 }
 
 img:hover {
@@ -72,6 +63,8 @@ hr {
 #linkbar {
 	border: 2px solid navy;
 	margin-bottom: 40px;
+	padding-left: 1vw;
+	padding-right: 1vw;
 }
 
 .links {
@@ -81,4 +74,36 @@ hr {
 
 #tos {
 	text-align: right;
+}
+
+.content{
+	font-family: Arial;
+	color: black;
+	display: flex;
+	padding: 1vw;
+	margin: 5vw;
+	border: 1px solid blue;
+}
+
+.left {
+	width: 50%;
+	margin: auto;
+}
+
+.right {
+	width: 50%;
+	margin-top: auto;
+	margin-bottom: auto;
+}
+
+#bottomtext {
+	display: flex;
+}
+
+#topbtn {
+	width: 50%;
+}
+
+#tos {
+	width: 50%;
 }
