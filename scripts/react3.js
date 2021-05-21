@@ -4,7 +4,7 @@ class Jump extends React.Component {
 	updateFn() {
 		this.setState({
 			numerator: window.scrollY,
-			denominator: window.scrollMaxY
+			denominator: document.body.scrollHeight - window.innerHeight
 		});
 	}
 	
@@ -24,12 +24,15 @@ class Jump extends React.Component {
 	}
 	
 	render() {
+		let frac = (this.state.numerator / this.state.denominator * 100);
+		frac = frac.toFixed(1);
+		if (frac < 0)
+			frac = 0;
+		if (frac > 100)
+			frac = 100;
 		return (
 			<div>
-			{(this.state.numerator /
-				this.state.denominator *
-				100).toPrecision(3)
-			}% scrolled
+			{frac}% scrolled
 			</div>
 		);
 	}
