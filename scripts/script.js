@@ -38,6 +38,8 @@ function quickLinksTabify() {
 			tab1.style.display = "";
 			let tab2 = document.querySelector(".tab2");
 			tab2.style.display = "none";
+			let tab3 = document.querySelector(".tab3");
+			tab3.style.display = "none";
 			return true;
 		}
 	}
@@ -47,6 +49,18 @@ function quickLinksTabify() {
 		tab1.style.display = "none";
 		let tab2 = document.querySelector(".tab2");
 		tab2.style.display = "inherit";
+		let tab3 = document.querySelector(".tab3");
+		tab3.style.display = "none";
+		return true;
+	}
+	let rl = document.getElementById("reactanchorlink");
+	rl.onclick = function() {
+		let tab1 = document.querySelector(".tab1");
+		tab1.style.display = "none";
+		let tab2 = document.querySelector(".tab2");
+		tab2.style.display = "none";
+		let tab3 = document.querySelector(".tab3");
+		tab3.style.display = "inherit";
 		return true;
 	}
 }

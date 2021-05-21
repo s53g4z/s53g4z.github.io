@@ -99,7 +99,7 @@ div {
 	width: 50%;
 }
 
-.tab2 {
+.tab2,.tab3 {
 	display: none;
 	margin: 3vw;
 }
@@ -113,6 +113,16 @@ div {
 	}
 }
 
-.tab1,.tab2 {
+.tab1,.tab2,.tab3 {
 	animation: fadeDiv 500ms ease-in-out both;
+}
+
+sidebar {
+	position: fixed;
+	margin-top: 3px;
+	top: 5px;
+	padding-left: 5px;
+	padding-right: 5px;
+	background: white;
+	border: solid 1px grey;
 }
