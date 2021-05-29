@@ -1,0 +1,42 @@
+.brick {
+  border-radius: 10px;
+}
+
+.deadbadguy {
+  border-radius: 10px;
+  background-color: brown !important;
+}
+
+.badguy {
+  font-weight: 900;
+  border-radius: 10px;
+}
+
+.playertext {
+  margin-left: 3%;
+  margin-right: 3%;
+  margin-top: 15%;
+}
+
+.coin {
+  font-size: 40px;
+  color: goldenrod;
+  text-align: center;
+}
+
+.powerup {
+  font-size: 40px;
+  color: blue;
+  text-align: center;
+  border-radius: 10px;
+}
+
+body {
+  font-family: monospace;
+  font-size: x-large;
+}
+
+#GUIncoins, #GUInlives {
+  font-family: Arial;
+  font-size: large;
+}
