@@ -3,6 +3,33 @@
 type Color = string;
 type Direction = "left" | "right" | "up" | "down";
 type Bonus = "coin";
+type Contents = "coin" | "powerup";
+type PlayerSize = "smol" | "big";
+
+class PreLoadImg {
+	static imgElems = new Array<HTMLImageElement>();
+	constructor() {
+		throw new Error("tried to construct a preloadimg");
+	}
+	static preload(url: string) {
+		const imgElem = document.createElement("img");
+		imgElem.src = url;
+		imgElem.style.position = "fixed";
+		imgElem.style.opacity = "0.0001%";
+		imgElem.style.width = "1px";
+		document.body.appendChild(imgElem);
+		this.imgElems.push(imgElem);
+	}
+	static getImg(index: number) {
+		if (index >= this.imgElems.length)
+			throw new Error("tried to access nonexistent image in cache");
+		const imgElem = this.imgElems[index];
+		imgElem.style.position = "";
+		imgElem.style.opacity = "";
+		imgElem.style.width = "100%";
+		return imgElem;
+	}
+}
 
 class WorldItem {
 	x: number;
@@ -44,6 +71,19 @@ class WorldItem {
 	die(): void {
 		GameState.removeFromWS(this);
 	}
+	getClassName(): string {
+		return this.div.className;
+	}
+	setClassName(newName: string): void {
+		this.div.className = newName;
+	}
+	getColor(): string {
+		return this.color;
+	}
+	setColor(newColor: string): void {
+		this.color = newColor;
+		this.div.style.backgroundColor = newColor;
+	}
 	stepState(): void {
 		throw new Error("child of WorldItem has undefined stepState()");
 	}
@@ -52,23 +92,20 @@ class WorldItem {
 class Brick extends WorldItem {
 	destructible: boolean;
 	
-	constructor(x, y, width, height, color,
-		className: string = "brick", destructible: boolean = false) {
+	constructor(x: number, y: number, width: number, height: number,
+		color: Color, className: string = "brick",
+		destructible: boolean = false) {
 		super(x, y, width, height, color, className);
 		this.destructible = destructible;
-		//this.div.className = "brick";
 	}
 	
 	stepState(): void {
 		if (!this.destructible)
 			return;
 		const player: Player = GameState.getPlayer();
-		player.y--;
 		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
-		player.y++;
-		for (let c of collisions) {
-			if (c !== player ||
-				c.topI() - 1 !== this.bottomI())
+		for (const c of collisions) {
+			if (c !== player || c.topI() - 1 !== this.bottomI())
 				continue;
 			// is headbutt by player! destroy self
 			player.accel = -player.accel;
@@ -78,61 +115,82 @@ class Brick extends WorldItem {
 }
 
 class Coin extends Brick {
-	constructor(x, y) {
+	constructor(x: number, y: number) {
 		super(x, y, 50, 50, "yellow", "coin");
-		this.div.style.borderRadius = 25 + "px";
+	//	this.div.style.borderRadius = 25 + "px";
 		this.div.innerText = "$";
-		//this.div.className = "coin";
 	}
 	
 	stepState(): void {
 		const p: Player = GameState.getPlayer();
-		this.x--;
-		this.y--;
-		this.width += 2;
-		this.height += 2;
 		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
-		for (let c of collisions)
+		for (const c of collisions)
 			if (p === c) {
 				GameState.setNCollectedCoins(
 					GameState.getNCollectedCoins() + 1);
 				return this.die();
 			}
-		this.x++;
-		this.y++;
-		this.width -= 2;
-		this.height -= 2;
 	}
 }
 
-class PowerUp extends WorldItem {
+class PowerUp extends Brick {
 	contents: Bonus;
 	active: boolean;
-	constructor(x, y, width, height) {
-		super(x, y, width, height, "skyblue", "powerup");
+	constructor(x: number, y: number) {
+		super(x, y, 50, 50, "green", "powerup");
+		const imgHandle = PreLoadImg.getImg(0);
+		this.div.appendChild(imgHandle);
+	}
+	makeBigPlayer(): void {
+		GameState.getPlayer().grow();
+	}
+	stepState(): void {
+		const p: Player = GameState.getPlayer();
+		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
+		for (const c of collisions)
+			if (p === c) {
+				this.makeBigPlayer();
+				return this.die();
+			}
+	}
+}
+
+class QuestionBox extends WorldItem {
+	active: boolean;
+	contents: Contents;
+	constructor(x: number, y: number, spawns: string = "$") {
+		super(x, y, 50, 50, "skyblue", "qbox");
 		this.active = true;
 		this.div.innerText = "?";
-		//this.div.className = "powerup";
+		if (spawns === "$")
+			this.contents = "coin";
+		else
+			this.contents = "powerup";
+	}
+	deactivate(): void {
+		this.div.style.backgroundColor = "grey";
+		this.div.style.color = "black";
+		this.active = false;
 	}
 	stepState(): void {
 		if (!this.active)
 			return;
 		const p: Player = GameState.getPlayer();
-		this.x--;
-		this.y--;
-		this.width += 2;
-		this.height += 2;
-		if (p.topI() === this.bottomI() &&
-			Util.isCollidingWith(this).includes(p)) {
-			const c: Coin = new Coin(this.x + 1, this.y + 1 - 50);
-			this.div.style.backgroundColor = "grey";
-			this.div.style.color = "black";
-			this.active = false;
+		if (p.topI() - 1 === this.bottomI()) {
+			const colls: Array<WorldItem> = Util.isCollidingWith(this);
+			for (const col of colls)
+				if (col === p) {
+					if (this.contents === "coin")
+						new Coin(this.x, this.y - 50);
+					else if (this.contents === "powerup")
+						new PowerUp(this.x, this.y - 50);
+					this.deactivate();
+					break;
+				}
 		}
-		this.x++;
-		this.y++;
-		this.width -= 2;
-		this.height -= 2;
+	}
+	die(): void {  // blown up by a bomb?
+		this.deactivate();
 	}
 }
 
@@ -152,9 +210,10 @@ class BadGuy extends AliveWorldItem {
 	patrol: boolean;
 	movementSpeed: number;
 	framesSkippedTurning: number;
-	constructor(x, y, width, height, color, dir: Direction = "right",
-		patrol: boolean = false, ms: number = 5) {
-		super(x, y, width, height, color, "badguy");
+	constructor(x: number, y: number, width: number, height: number,
+		color: Color, dir: Direction = "right", patrol: boolean = false,
+		ms: number = 3, className: string = "badguy") {
+		super(x, y, width, height, color, className);
 		this.dir = dir;
 		this.patrol = patrol;
 		this.movementSpeed = ms;
@@ -164,25 +223,18 @@ class BadGuy extends AliveWorldItem {
 	
 	steppedOn(): boolean {
 		const p: Player = GameState.getPlayer();
-		p.y++;
-		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
-		p.y--;
-		if (p.bottomI() + 1 == this.topI() && collisions.includes(p))
-			return true;
+		if (p.bottomI() + 1 == this.topI()) {
+			const collisions: Array<WorldItem> = Util.isCollidingWith(this);
+			for (const col of collisions)
+				if (col == p)
+					return true;
+		}
 		return false;
 	}
 	
 	touchingPlayer(): boolean {
 		const p: Player = GameState.getPlayer();
-		this.x--;
-		this.y--;
-		this.width += 2;
-		this.height += 2;
 		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
-		this.x++;
-		this.y++;
-		this.width -= 2;
-		this.height -= 2;
 		for (const c of collisions)
 			if (p === c)
 				return true;
@@ -214,9 +266,9 @@ class BadGuy extends AliveWorldItem {
 			this.maybeTurnAround();
 		
 		const oldX: number = this.x;
-		const oldOnSurface = Util.onSolidSurface(this);
+		const oldOnSurface: boolean = Util.onSolidSurface(this);
 		this.x = hMove + (this.dir === "left" ? - (this.width / 2) :
-			(this.width / 2));
+			(this.width / 2));  // why???
 		if (this.patrol && oldOnSurface && !Util.onSolidSurface(this)) {
 			this.x = oldX;
 			this.maybeTurnAround();
@@ -242,40 +294,118 @@ class BadGuy extends AliveWorldItem {
 		this.div.style.top = this.y + "px";
 	}
 	stepState(): void {
-		this.framesSkippedTurning++;
-
 		if (!this.alive)
 			return;
+		this.framesSkippedTurning++;
+
+
 		if (this.steppedOn() || this.bottomI() == Util.bottomEdge - 1)
-			return this.die();
-		if (this.touchingPlayer())
-			return GameState.getPlayer().die();
+			this.die();
+		else if (this.touchingPlayer())
+			GameState.getPlayer().die();
 		
-		this.horizCanMoveTo();
-		if (Util.onSolidSurface(this)) {
-			//this.horizCanMoveTo();
-			this.accel = 0;
-		} else
-			this.accel += 0.2;
-		this.y = Util.canMoveTo(this, "down");
+		if (this.alive) {
+			this.horizCanMoveTo();
+			if (Util.onSolidSurface(this))
+				this.accel = 0;
+			else
+				this.accel += 1.0;
+			this.y = Util.canMoveTo(this, "down");
+		}
 
 		this.decorateDOMSelf();
+	}
+}
+
+class Bomb extends BadGuy {
+	isTicking: boolean;
+	constructor(x: number, y: number, dir: Direction = "right") {
+		super(x, y, 50, 50, "hotpink", dir, true, 3, "bomb");
+		this.isTicking = false;
+	}
+	
+	explode(): void {
+		this.x -= 50;
+		this.y -= 50;
+		this.width *= 3;
+		this.height *= 3;
+		
+		this.stepState = () => {
+			if (this.touchingPlayer())
+				GameState.getPlayer().die();
+		};
+
+		this.div.style.width = this.width + "px";
+		this.div.style.height = this.height + "px";
+		this.div.style.left = this.x + "px";
+		this.div.style.top = this.y + "px";
+		this.div.className = "explodingbomb";
+		
+		const colls: Array<WorldItem> = Util.isCollidingWith(this);
+		for (const c of colls) {
+			if (c.getClassName() === "coin" || c.getClassName() === "qbox" ||
+				c.getClassName() === "badguy" || c.getClassName() === "bomb" ||
+				c.getClassName() === "player")
+				c.die();
+		}
+	}
+	
+	die(): void {
+		if (this.isTicking)
+			return;
+		
+		GameState.getPlayer().accel = 0;
+		this.div.innerText = "O.O";
+		this.div.className = "tickingbomb";
+		
+		const flickerHandle = window.setInterval(() => {
+			if (this.div.style.backgroundColor != "hotpink")
+				this.div.style.backgroundColor = "hotpink";
+			else
+				this.div.style.backgroundColor = "red"
+		}, 250);
+		GameState.recordTimeout(flickerHandle);
+		
+		const stopflickerHandle = window.setTimeout(() => {  // buggy
+			window.clearInterval(flickerHandle);
+			this.explode();
+			const deleteBombHandle = window.setTimeout(() => {
+				GameState.removeFromWS(this);
+			}, 500);
+			GameState.recordTimeout(deleteBombHandle);
+		}, 2000);
+		GameState.recordTimeout(stopflickerHandle);
+		
+		this.isTicking = true;
+	}
+	
+	decorateDOMSelf(): void {
+		this.div.innerText = "-.-";
+		if (this.isTicking)
+			this.div.innerText = "O.O";
+		this.div.style.textAlign = "left";
+		if (this.dir === "right")
+			this.div.style.textAlign = "end";
+		this.div.style.left = this.x + "px";
+		this.div.style.top = this.y + "px";
 	}
 }
 
 class Player extends AliveWorldItem {
 	isJumping: boolean;
 	alreadyJumped: boolean;
+	sz: PlayerSize;
+	invincible: boolean;
 	
-	setText(): void {
-		const child = document.createElement("div");
-		child.innerText = "OwO";
-		child.style.textAlign = "end";
-		child.className = "playertext";
-		this.div.appendChild(child);
-	}
-	constructor(x, y, width, height, color) {
-		super(x, y, width, height, color, "player");
+	constructor(x: number, y: number, sz: PlayerSize) {
+		super(x, y, 50, 50, "", "player");
+		this.sz = sz;
+		if (this.sz === "big") {
+			this.sz = "smol";
+			this.grow();
+		}
+		
+		this.invincible = false;
 		this.accel = 0;
 		this.isJumping = false;
 		this.alreadyJumped = false;
@@ -283,6 +413,35 @@ class Player extends AliveWorldItem {
 		if (GameState.getPlayer())
 			throw new Error("attempted to spawn a second player");
 		GameState.setPlayer(this);
+	}
+	grow(): void {
+		if (this.sz === "big")
+			return;  // can't grow twice
+		this.height *= 2;
+		this.div.style.height = this.height + "px";
+		this.y -= this.height / 2;
+		this.div.style.top = this.topI() + "px";
+		this.sz = "big";
+	}
+	shrink(): void {
+		if (this.sz !== "big")
+			throw new Error("bad player shrink() call");
+		this.height /= 2;
+		this.div.style.height = this.height + "px";
+		this.sz = "smol";
+		this.invincible = true;
+		const invincibleTimerHandle = window.setTimeout(() => {
+			this.invincible = false;
+			this.setColor("limegreen");
+		}, 1000);
+		GameState.recordTimeout(invincibleTimerHandle);
+	}
+	setText(): void {
+		const child: HTMLDivElement = document.createElement("div");
+		child.innerText = "OwO";
+		child.style.textAlign = "end";
+		child.className = "playertext";
+		this.div.appendChild(child);
 	}
 	jump(): void {  // helper fn for stepState()
 		this.isJumping = true;
@@ -305,15 +464,38 @@ class Player extends AliveWorldItem {
 		}
 	}
 	die(): void {
+		if (!this.alive)
+			return;
+		if (this.sz == "big") {
+			this.shrink();
+			return;
+		}
+		else if (this.invincible)
+			return;
+		else
+			this.alive = false;
+		
 		GameState.setNLivesLeft(GameState.getNLivesLeft() - 1);
 		GameState.drawGUI();
-		const nLivesLeft = GameState.getNLivesLeft();
-		if (0 == nLivesLeft) {
+		
+		// animate death
+		const playerTextDiv: HTMLDivElement = 
+			<HTMLDivElement> this.div.getElementsByClassName("playertext")[0];
+		playerTextDiv.innerText = "XwX";
+		playerTextDiv.className = "playertextdying";
+		this.stepState = () => { };  // stop processing user input
+		this.setClassName("dyingplayer");
+		
+		let resetDelay = 0;
+		if (GameState.getNLivesLeft() === 0)
 			alert("Game Over! Press OK to play again.");
-		}
-		Init.resetWorld();
+		else
+			resetDelay = 2000;
+		const resetWorldTimeoutHandle = window.setTimeout(() => {
+			Init.resetWorld();
+		}, resetDelay);
+		GameState.recordTimeout(resetWorldTimeoutHandle);
 	}
-	
 	maybeScroll(): void {
 		const origX = this.x;
 		const scrollLine = (Util.rightEdge - Util.leftEdge) / 3;
@@ -331,10 +513,20 @@ class Player extends AliveWorldItem {
 	}
 	
 	stepState(): void {
-		if (this.bottomI() == Util.bottomEdge - 1)
+		if (this.invincible) {
+			if (this.getColor() === "limegreen")
+				this.setColor("greenyellow");
+			else
+				this.setColor("limegreen");
+		}
+		
+		if (this.bottomI() === Util.bottomEdge - 1) {
 			this.die();
-		let owo: HTMLDivElement = <HTMLDivElement>
-			this.div.getElementsByClassName("playertext")[0];
+			return;
+		}
+		
+		let owo: HTMLDivElement =
+			<HTMLDivElement> this.div.getElementsByClassName("playertext")[0];
 		if (!owo)
 			throw new Error("player must have a child div!");
 		
@@ -359,7 +551,7 @@ class Player extends AliveWorldItem {
 }
 
 class Teleporter extends WorldItem {
-	nextLevel: () => void;
+	nextLevel: (sz: PlayerSize) => void;
 	
 	constructor(x: number, y: number, nextLevel) {
 		super(x, y, 50, 50, "#9CFF9C", "teleporter");
@@ -367,21 +559,14 @@ class Teleporter extends WorldItem {
 	}
 	
 	stepState() {
-		this.x--;
-		this.y--;
-		this.width += 2;
-		this.height += 2;
 		const collisions = Util.isCollidingWith(this);
 		for (const c of collisions)
 			if (c === GameState.getPlayer()) {
+				const szPlayer = GameState.getPlayer().sz;
 				GameState.clearTimeouts();
 				GameState.clearElemsOfWS();
-				this.nextLevel();
+				this.nextLevel(szPlayer);
 			}
-		this.x++;
-		this.y++;
-		this.width -= 2;
-		this.height -= 2;
 	}
 }
 
@@ -389,7 +574,7 @@ class GameState {
 	constructor() {
 		throw new Error("attempted to construct a GameState");
 	}
-	static ws: WorldItem[] = new Array();
+	static ws: WorldItem[] = new Array<WorldItem>();
 	static player: Player = null;
 	static currLevel = null;
 	static nCollectedCoins = 0;
@@ -438,7 +623,7 @@ class GameState {
 	static getDOMElemById(id: string): HTMLElement {
 		let div = document.getElementById(id);
 		if (!div) {
-			let newdiv = document.createElement("div");
+			let newdiv: HTMLDivElement = document.createElement("div");
 			newdiv.id = id;
 			newdiv.style.margin = "0.5vw";
 			document.body.appendChild(newdiv);
@@ -493,50 +678,49 @@ class UtilHelpers {
 	}
 	// might need a rewrite
 	static canMoveStepperX(p: AliveWorldItem, maxStep: number): number {
-		let canMoveX: number = maxStep;
-		for (let i = 0; i <= Math.abs(maxStep); i++) {
+		let canMoveX: number = p.x;//maxStep;
+		for (let i = 0; i < Math.abs(maxStep); i++) {
 			let j: number = maxStep > 0 ? i : -i;
 			p.x += j;
 			let collisions: Array<WorldItem> = Util.isCollidingWith(p);
 			let shouldBreak: boolean = false;
 			for (let c of collisions)
-				if (c.div.className !== "coin" &&
-					(p.rightI() === c.leftI() && maxStep > 0 ||
-					p.leftI() === c.rightI() && maxStep < 0)) {
-					canMoveX = j + (maxStep > 0 ? -1 : 1);
+				if (c.getClassName() !== "coin" &&
+					c.getClassName() !== "teleporter" &&
+					(p.rightI() + 1 === c.leftI() && maxStep > 0 ||
+					p.leftI() - 1 === c.rightI() && maxStep < 0)) {
 					shouldBreak = true;  // found a collision, stop
+					break;
 				}
 			p.x -= j;
 			if (shouldBreak)
 				break;
+			canMoveX += maxStep > 0 ? 1 : -1;
 		}
-		let newPosX: number = p.x + canMoveX;
-		//if (newPosX < Util.leftEdge)
-		//	newPosX = Util.leftEdge + 1;
-		//if (newPosX + p.width > Util.rightEdge)
-		//	newPosX = Util.rightEdge - p.width - 1;
-		return newPosX;
+		return canMoveX;
 	}
 	// might also need a rewrite. really similar to canMoveStepperX().
 	static canMoveStepperY(p: AliveWorldItem) {
-		let canMoveY: number = p.accel;
-		for (let i = 0; i <= Math.abs(p.accel); i++) {
+		let canMoveY: number = p.y;
+		for (let i = 0; i < Math.abs(p.accel); i++) {
+			const savedpy = p.y;
 			p.y += p.accel > 0 ? i : -i;
-			let collisions: Array<WorldItem> = Util.isCollidingWith(p);
+			const collisions: Array<WorldItem> = Util.isCollidingWith(p);
 			let shouldBreak: boolean = false;
-			for (let c of collisions)
-				if (c.div.className !== "coin" &&
-					(p.topI() === c.bottomI() && p.accel < 0 ||
-					p.bottomI() === c.topI() && p.accel > 0)) {
-					canMoveY = (p.accel > 0 ? i : -i) +
-						(p.accel > 0 ? -1 : 1);
+			for (const c of collisions)
+				if (c.getClassName() !== "coin" &&
+					c.getClassName() !== "teleporter" &&
+					(p.topI() - 1 === c.bottomI() && p.accel < 0 ||
+					p.bottomI() + 1 === c.topI() && p.accel > 0)) {
 					shouldBreak = true;
+					break;
 				}
-			p.y -= p.accel > 0 ? i : -i;
+			p.y = savedpy;
 			if (shouldBreak)
 				break;
+			canMoveY += p.accel > 0 ? 1 : -1;
 		}
-		let newPosY: number = p.y + canMoveY;
+		let newPosY: number = canMoveY;
 		if (newPosY < Util.topEdge)
 			newPosY = Util.topEdge + 1;
 		if (newPosY + p.height > Util.bottomEdge)
@@ -564,7 +748,7 @@ class UtilHelpers {
 	static actualRegisterKeys(): void {
 		window.onkeydown = function(e) {
 			const key: string = e.code.toString();
-			if (key === "KeyW" || key === "ArrowUp")
+			if (key === "KeyW" || key === "ArrowUp" || key === "Space")
 				Util.isWDown = true;
 			if (key === "KeyA" || key === "ArrowLeft")
 				Util.isADown = true;
@@ -575,7 +759,7 @@ class UtilHelpers {
 		}
 		window.onkeyup = function(e) {
 			const key: string = e.code.toString();
-			if (key === "KeyW" || key === "ArrowUp")
+			if (key === "KeyW" || key === "ArrowUp" || key === "Space")
 				Util.isWDown = false;
 			if (key === "KeyA" || key === "ArrowLeft")
 				Util.isADown = false;
@@ -635,6 +819,9 @@ class Util {
 		return n;
 	}
 
+	static preloadImages(): void {
+		PreLoadImg.preload("images/arrowup.svg");
+	}
 	// client-callable fn
 	static canMoveTo(p: AliveWorldItem, direction: Direction,
 		speed: number = 1): number {
@@ -652,18 +839,26 @@ class Util {
 	// client-callable fn
 	static onSolidSurface(p: AliveWorldItem): boolean {
 		let ret: boolean = false;
-		p.y++;
-		if (p.bottomI() === Util.bottomEdge)
+		//p.y++;
+		if (p.bottomI() + 1 === Util.bottomEdge)
 			ret = true;
 		else
 			for (const w of GameState.ws) {
-				if (p !== w && p.bottomI() == w.topI() &&
-					Util.isCollidingWith(p).includes(w)) {
-						ret = true;
-						break;
-					}
+				let shouldBreak: boolean = false;
+				if (p !== w && p.bottomI() + 1 == w.topI() &&
+					w.getClassName() !== "teleporter") {
+					const collisions = Util.isCollidingWith(p);
+					for (const c of collisions)
+						if (c === w) {
+							ret = true;
+							shouldBreak = true;
+							break;
+						}
+				}
+				if (shouldBreak)
+					break;
 			}
-		p.y--;
+		//p.y--;
 		return ret;
 	}
 	// client-callable fn
@@ -681,11 +876,24 @@ class Util {
 	}
 	// client-callable fn
 	static isCollidingWith(v: WorldItem): Array<WorldItem> {
+		v.x--;
+		v.y--;
+		v.width += 2;
+		v.height += 2;
 		let ret: Array<WorldItem> = new Array();
 		for (const w of GameState.ws)
 			if (v !== w && UtilHelpers.isCollidingHoriz(v, w) &&
-				UtilHelpers.isCollidingVert(v, w))
+				UtilHelpers.isCollidingVert(v, w) &&
+				!(v.bottomI() === w.topI() && v.leftI() === w.rightI()) &&
+				!(v.bottomI() === w.topI() && v.rightI() === w.leftI()) &&
+				!(v.topI() === w.bottomI() && v.leftI() === w.rightI()) &&
+				!(v.topI() === w.bottomI() && v.rightI() === w.leftI())
+				)
 				ret.push(w);
+		v.x++;
+		v.y++;
+		v.width -= 2;
+		v.height -= 2;
 		return ret;
 	}
 	// client-callable fn
@@ -693,7 +901,7 @@ class Util {
 		if (!GameState.before)
 			GameState.before = Date.now();
 		GameState.now = Date.now();
-		if (GameState.now - GameState.before < 1000 / 75) {
+		if (GameState.now - GameState.before < 1000 / 72) {
 			window.requestAnimationFrame(Util.paintLoop);
 			return;
 		}
@@ -770,94 +978,110 @@ class Init {
 		throw new Error("attempted to construct class Init");
 	}
 	
-	static World1(): void {
+	static World1(sz: PlayerSize): void {
 		console.log("Entering World 1");
 		GameState.currLevel = Init.World1;
 		new Brick(100, 400, 75, 10, "skyblue");
-		new Brick(200, 300, 100, 10, "blueviolet", "brick", true);
-		new Player(10, 10, 50, 50, "limegreen");
+		new Brick(200, 330, 100, 10, "blueviolet", "brick", true);
+		new Brick(230, 345, 10, 10, "skyblue", "brick", true);
+		new Player(10, 10, sz);
 		new Brick(300, 450, 10, 10, "skyblue");
 		new BadGuy(400, 400, 50, 50, "red", "right", true);
 		new BadGuy(340, 60, 50, 50, "red", "right", true);
 		new BadGuy(200, 150, 50, 50, "red", "left", true);
-		new PowerUp(300, 200, 50, 50);
+		new QuestionBox(300, 200, "!");
 		new Coin(500, 400);
 		new Brick(650, 470, 300, 10, "skyblue");
-		
-		new PowerUp(400, 150, 50, 50);
-		new PowerUp(450, 150, 50, 50);
-		new PowerUp(500, 150, 50, 50);
-		new BadGuy(544, 100, 50, 50, "red", "left", false, 10);
-		
-		new PowerUp(20, 150, 50, 50);
-		new PowerUp(120, 150, 50, 50);
-		
-		new PowerUp(450, 300, 50, 50);
-		new PowerUp(550, 300, 50, 50);
+		new Bomb(200, 100, "right");
+		new QuestionBox(400, 150);
+		new QuestionBox(450, 150);
+		new QuestionBox(500, 150);
+		new BadGuy(550, 90, 50, 50, "red", "right", true);
+		new QuestionBox(20, 150);
+		new QuestionBox(120, 150);
+		new QuestionBox(450, 300);
+		new QuestionBox(550, 300);
 		new BadGuy(444, 222, 50, 50, "red", "left", true);
-		new PowerUp(340, 300, 50, 50);
-		
+		new QuestionBox(340, 300);
 		new Teleporter(640, 350, Init.World2);
-
-		// x, y, width, height, color, dir?, patrol?, ms?
 	}
 	
-	static World0(): void {
+	static World0(sz: PlayerSize = "smol"): void {
 		console.log("Entering World 0");
 		GameState.currLevel = Init.World0;
-		
-		new Player(10, 10, 50, 50, "limegreen");
+		new Player(10, 10, sz);
 		new Brick(1, 480 - 10 - 1, 1000, 10, "violet", "brick", false);
-		new PowerUp(400, 300, 50, 50);
+		new QuestionBox(400, 300, "!");
+		new QuestionBox(550, 300);
+		new QuestionBox(600, 300);
+		new QuestionBox(650, 300);
+		new QuestionBox(700, 300);
+		new QuestionBox(625, 130);
+		new Brick(1000, 400, 100, 10, "violet", "brick", false);
+		new QuestionBox(1025, 180);
+		new QuestionBox(1400, 170);
+		
 		new BadGuy(600, 400, 50, 50, "red", "left", false);
-
 		new Brick(1300, 325, 1000, 10, "violet", "brick", false);
 		new BadGuy(1800, 250, 50, 50, "red", "left", true);
 		new BadGuy(1900, 250, 50, 50, "red", "left", true);
 		new BadGuy(2000, 250, 50, 50, "red", "left", true);
+		new Bomb(2100, 250, "left");
+		new Bomb(2200, 250, "right");
 		new Coin(2200, 25);
-
+		new Coin(2400, 100);
+		new Coin(2500, 150);
+		new Coin(2600, 200);
+		new Coin(2700, 250);
+		new Coin(2800, 300);
+		
 		new Brick(2800, 450, 100, 10, "violet", "brick", false);
 		new Brick(2890, 350, 10, 10, "violet", "brick", false);
 		new Brick(3000, 225, 100, 10, "violet", "brick", false);
+		new Bomb(3000, 150, "right");
 		new Brick(3200, 100, 100, 10, "violet", "brick", false);
 		new Brick(3200, 150, 10, 300, "violet", "brick", false);
 		new Coin(3210, 200);
 		new Brick(3600, 450, 300, 10, "violet", "brick", false);
-		
 		new Teleporter(3900, 300, Init.World1);
-
 	}
 
-	static World2() {
+	static World2(sz: PlayerSize) {
 		console.log("Entering World 2");
 		GameState.currLevel = Init.World2;
-		
-		new Player(20, 200, 50, 50, "limegreen");
+		new Player(20, 200, sz);
 		new Brick(1, 470, 1009, 10, "violet", "brick", false);
 		new Brick(1, 120, 10, 360, "violet", "brick", false);
-		new PowerUp(400, 300, 50, 50);
-		new PowerUp(450, 300, 50, 50);
-		new PowerUp(500, 300, 50, 50);
-		new PowerUp(550, 300, 50, 50);
-		new BadGuy(500, 220, 50, 50, "red", "left", true, 5);
+		new QuestionBox(400, 300);
+		new QuestionBox(450, 300);
+		new QuestionBox(500, 300);
+		new QuestionBox(550, 300);
+		new BadGuy(500, 220, 50, 50, "red", "left", true);
 		new Brick(1, 120, 1000, 10, "violet", "brick", false);
 		new BadGuy(1, 60, 50, 50, "red", "right", false);
-		new Brick(1100, 120, 10, 30, "violet", "brick", false);
-		new Brick(1000, 460, 10, 20, "violet", "brick", false);
+		new BadGuy(100, 60, 50, 50, "red", "right", false);
+		new BadGuy(200, 60, 50, 50, "red", "right", false);
+		new BadGuy(300, 60, 50, 50, "red", "right", false);
+		new BadGuy(400, 60, 50, 50, "red", "right", false);
+		new BadGuy(500, 60, 50, 50, "red", "right", false);
+		new BadGuy(600, 60, 50, 50, "red", "right", false);
+		new BadGuy(700, 60, 50, 50, "red", "right", false);
+		new BadGuy(800, 60, 50, 50, "red", "right", false);
+		new BadGuy(900, 60, 50, 50, "red", "right", false);
+		new BadGuy(1000, 60, 50, 50, "red", "right", false);
 		
+		new Brick(1060, 120, 10, 30, "violet", "brick", false);
+		new Brick(1000, 460, 10, 20, "violet", "brick", false);
 		new Brick(1200, 300, 10, 100, "violet", "brick", false);
 		new Brick(1400, 450, 200, 10, "violet", "brick", false);
 		new Brick(1600, 300, 10, 150, "violet", "brick", false);
 		new Brick(1900, 300, 10, 150, "violet", "brick", false);
 		new Brick(2200, 300, 10, 150, "violet", "brick", false);
 		new Brick(2500, 300, 10, 150, "violet", "brick", false);
-		
 		new Brick(3100, 470, 200, 10, "violet", "brick", false);
 		new Brick(3300, 370, 200, 10, "violet", "brick", false);
 		new Brick(3500, 270, 200, 10, "violet", "brick", false);
 		new Brick(3700, 170, 200, 10, "violet", "brick", false);
-		
 		new Teleporter(3900, 70, Init.World0);
 	}
 
@@ -878,6 +1102,7 @@ class Init {
 // main?
 (() => {
 	Util.drawBorders();
+	Util.preloadImages();
 	Init.resetWorld();
 	Util.registerKeys();
 	Util.paintLoop();

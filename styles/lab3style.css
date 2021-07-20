@@ -12,7 +12,53 @@
   border-radius: 10px;
 }
 
-.playertext {
+.bomb, .tickingbomb, .explodingbomb {
+  font-weight: 900;
+  border-radius: 25px;
+}
+
+.explodingbomb {
+  color: rgba(0, 0, 0, 0);
+  background-color: rgba(255, 127, 0, 0.5) !important;
+}
+
+.player {
+  background-color: limegreen;
+}
+
+@keyframes animationPlayerDying {
+  from {
+    background-color: rgb(255, 127, 0);
+  }
+  to {
+    background-color: rgb(255, 255, 255);
+  }
+}
+
+@keyframes animationPlayerTextDying {
+  from {
+    color: rgb(0, 0, 0);
+  }
+  to {
+    color: rgb(255, 255, 255);
+  }
+}
+
+.dyingplayer {
+  animation-name: animationPlayerDying;
+  animation-duration: 2s;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.playertextdying {
+  animation-name: animationPlayerTextDying;
+  animation-duration: 2s;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.playertext, .playertextdying {
   margin-left: 3%;
   margin-right: 3%;
   margin-top: 15%;
@@ -22,9 +68,15 @@
   font-size: 40px;
   color: goldenrod;
   text-align: center;
+  border-radius: 25px;
 }
 
 .powerup {
+  background-color: rgba(0, 255, 0, 0.2) !important;
+  border-radius: 25px;
+}
+
+.qbox {
   font-size: 40px;
   color: blue;
   text-align: center;
