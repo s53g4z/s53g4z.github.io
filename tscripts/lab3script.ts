@@ -5,6 +5,10 @@ type Direction = "left" | "right" | "up" | "down";
 type Bonus = "coin";
 type Contents = "coin" | "powerup";
 type PlayerSize = "smol" | "big";
+type Point = {
+	x: number,
+	y: number
+};
 
 class PreLoadImg {
 	static imgElems = new Array<HTMLImageElement>();
@@ -38,6 +42,7 @@ class WorldItem {
 	height: number;
 	color: Color;
 	div: HTMLDivElement;
+	accel: number;
 	constructor(x: number, y: number, width: number, height: number,
 		color: Color, className: string) {
 		this.div = document.createElement("div");
@@ -54,6 +59,7 @@ class WorldItem {
 		this.width = width;
 		this.height = height;
 		this.color = color;
+		this.accel = 0;
 		GameState.appendToWS(this);
 	}
 	topI(): number {
@@ -84,6 +90,10 @@ class WorldItem {
 		this.color = newColor;
 		this.div.style.backgroundColor = newColor;
 	}
+	scroll(amount: number): void {
+		this.x += amount;
+		this.div.style.left = this.x + "px";
+	}
 	stepState(): void {
 		throw new Error("child of WorldItem has undefined stepState()");
 	}
@@ -111,6 +121,99 @@ class Brick extends WorldItem {
 			player.accel = -player.accel;
 			return this.die();
 		}
+	}
+}
+
+class Platform extends Brick {
+	start: Point;
+	end: Point;
+	speed: number;
+	constructor(width: number, height: number, start: Point = {x: 0, y: 0},
+		end: Point = {x: 0, y: 0}, speed: number = 0) {
+		super(start.x, start.y, width, height, "orange", "platform", false);
+		this.start = start;
+		this.end = end;
+		this.speed = speed;
+		if (this.start.x > this.end.x)
+			throw new Error("invalid start/end points for Platform");
+	}
+	scroll(amount: number): void {
+		this.x += amount;
+		this.div.style.left = this.x + "px";
+		this.start.x += amount;
+		this.end.x += amount;
+	}
+	stepState(): void {
+		if (this.speed === 0)
+			return;
+		let distBetweenEndpoints = 0;
+		if (this.speed > 0) {
+			distBetweenEndpoints = Math.sqrt(
+				Math.pow(this.end.x - this.x, 2) +
+				Math.pow(this.end.y - this.y, 2));
+		} else {
+			distBetweenEndpoints = Math.sqrt(
+				Math.pow(this.x - this.start.x, 2) +
+				Math.pow(this.y - this.start.y, 2));
+		}
+		if (distBetweenEndpoints < 1) {
+			// snap to start or end
+			if (Math.abs(this.x - this.start.x) < 1 &&
+				Math.abs(this.y - this.start.y) < 1) {
+				this.x = this.start.x;
+				this.y = this.start.y;
+			} else {
+				this.x = this.end.x;
+				this.y = this.end.y;
+			}
+		}
+		const origSpeed = this.speed;
+		if (distBetweenEndpoints < Math.abs(this.speed))
+			this.speed = distBetweenEndpoints * this.speed > 0 ? 1 : -1;
+		let rise = 0;
+		let run = 0;
+		if (this.speed > 0) {
+			rise = this.end.y - this.y;
+			run = this.end.x - this.x;
+		} else {  // speed < 0
+			rise = this.y - this.start.y;
+			run = this.x - this.start.x;
+		}
+		const scaleFactor = this.speed / distBetweenEndpoints;
+		let deltaY = rise * scaleFactor;
+		let deltaX = run * scaleFactor;
+		if (Math.abs(deltaY) > Math.abs(this.speed) ||
+			Math.abs(deltaX) > Math.abs(this.speed)) {
+			console.warn("programmer error: delta is greater than speed");
+			console.warn("delta: ", deltaX, ", speed: ", this.speed);
+		}
+		this.accel = deltaY;
+		let canMoveY = Util.canMoveTo(this, "up");
+		let canMoveX = Util.canMoveTo(this, this.speed > 0 ? "right" : "left",
+			Math.abs(deltaX));
+		deltaY = canMoveY - this.y;
+		deltaX = canMoveX - this.x;
+		
+		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
+		for (const c of collisions) {
+			if (c.bottomI() + 1 !== this.topI())
+				continue;
+			// for each item sitting on this platform, move item
+			c.x += deltaX;
+			c.y += deltaY;
+			c.div.style.left = c.x + "px";
+			c.div.style.top = c.y + "px";
+		}
+		
+		this.y = canMoveY;
+		this.x = canMoveX;
+		this.div.style.top = this.y + "px";
+		this.div.style.left = this.x + "px";
+		
+		this.speed = origSpeed;
+		if (this.x === this.end.x && this.y === this.end.y ||
+			this.x === this.start.x && this.y === this.start.y)
+			this.speed = -this.speed;
 	}
 }
 
@@ -195,7 +298,6 @@ class QuestionBox extends WorldItem {
 }
 
 class AliveWorldItem extends WorldItem {
-	accel: number;
 	alive: boolean;
 	constructor(x: number, y: number, width: number, height: number,
 		color: Color, className: string = "unknown") {
@@ -502,13 +604,15 @@ class Player extends AliveWorldItem {
 		const scrollLine2 = 10;
 		if (origX > scrollLine)
 			for (const w of GameState.ws) {
-				w.x -= origX - scrollLine;
-				w.div.style.left = w.x + "px";
+				w.scroll(-origX + scrollLine);
+				//w.x -= origX - scrollLine;
+				//w.div.style.left = w.x + "px";
 			}
 		else if (origX < scrollLine2)
 			for (const w of GameState.ws) {
-				w.x += scrollLine2 - origX;
-				w.div.style.left = w.x + "px";
+				w.scroll(scrollLine2 - origX);
+				//w.x += scrollLine2 - origX;
+				//w.div.style.left = w.x + "px";
 			}
 	}
 	
@@ -677,7 +781,7 @@ class UtilHelpers {
 		throw new Error("class UtilHelpers cannot be constructed!");
 	}
 	// might need a rewrite
-	static canMoveStepperX(p: AliveWorldItem, maxStep: number): number {
+	static canMoveStepperX(p: WorldItem, maxStep: number): number {
 		let canMoveX: number = p.x;//maxStep;
 		for (let i = 0; i < Math.abs(maxStep); i++) {
 			let j: number = maxStep > 0 ? i : -i;
@@ -700,7 +804,7 @@ class UtilHelpers {
 		return canMoveX;
 	}
 	// might also need a rewrite. really similar to canMoveStepperX().
-	static canMoveStepperY(p: AliveWorldItem) {
+	static canMoveStepperY(p: WorldItem) {
 		let canMoveY: number = p.y;
 		for (let i = 0; i < Math.abs(p.accel); i++) {
 			const savedpy = p.y;
@@ -823,7 +927,7 @@ class Util {
 		PreLoadImg.preload("images/arrowup.svg");
 	}
 	// client-callable fn
-	static canMoveTo(p: AliveWorldItem, direction: Direction,
+	static canMoveTo(p: WorldItem, direction: Direction,
 		speed: number = 1): number {
 		if (direction === "left") {
 			return UtilHelpers.canMoveStepperX(p, -speed);

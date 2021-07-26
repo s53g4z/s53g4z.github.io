@@ -55,6 +55,7 @@ var WorldItem = /** @class */ (function () {
         this.width = width;
         this.height = height;
         this.color = color;
+        this.accel = 0;
         GameState.appendToWS(this);
     }
     WorldItem.prototype.topI = function () {
@@ -84,6 +85,10 @@ var WorldItem = /** @class */ (function () {
     WorldItem.prototype.setColor = function (newColor) {
         this.color = newColor;
         this.div.style.backgroundColor = newColor;
+    };
+    WorldItem.prototype.scroll = function (amount) {
+        this.x += amount;
+        this.div.style.left = this.x + "px";
     };
     WorldItem.prototype.stepState = function () {
         throw new Error("child of WorldItem has undefined stepState()");
@@ -115,6 +120,98 @@ var Brick = /** @class */ (function (_super) {
     };
     return Brick;
 }(WorldItem));
+var Platform = /** @class */ (function (_super) {
+    __extends(Platform, _super);
+    function Platform(width, height, start, end, speed) {
+        if (start === void 0) { start = { x: 0, y: 0 }; }
+        if (end === void 0) { end = { x: 0, y: 0 }; }
+        if (speed === void 0) { speed = 0; }
+        var _this = _super.call(this, start.x, start.y, width, height, "orange", "platform", false) || this;
+        _this.start = start;
+        _this.end = end;
+        _this.speed = speed;
+        if (_this.start.x > _this.end.x)
+            throw new Error("invalid start/end points for Platform");
+        return _this;
+    }
+    Platform.prototype.scroll = function (amount) {
+        this.x += amount;
+        this.div.style.left = this.x + "px";
+        this.start.x += amount;
+        this.end.x += amount;
+    };
+    Platform.prototype.stepState = function () {
+        if (this.speed === 0)
+            return;
+        var distBetweenEndpoints = 0;
+        if (this.speed > 0) {
+            distBetweenEndpoints = Math.sqrt(Math.pow(this.end.x - this.x, 2) +
+                Math.pow(this.end.y - this.y, 2));
+        }
+        else {
+            distBetweenEndpoints = Math.sqrt(Math.pow(this.x - this.start.x, 2) +
+                Math.pow(this.y - this.start.y, 2));
+        }
+        if (distBetweenEndpoints < 1) {
+            // snap to start or end
+            if (Math.abs(this.x - this.start.x) < 1 &&
+                Math.abs(this.y - this.start.y) < 1) {
+                this.x = this.start.x;
+                this.y = this.start.y;
+            }
+            else {
+                this.x = this.end.x;
+                this.y = this.end.y;
+            }
+        }
+        var origSpeed = this.speed;
+        if (distBetweenEndpoints < Math.abs(this.speed))
+            this.speed = distBetweenEndpoints * this.speed > 0 ? 1 : -1;
+        var rise = 0;
+        var run = 0;
+        if (this.speed > 0) {
+            rise = this.end.y - this.y;
+            run = this.end.x - this.x;
+        }
+        else { // speed < 0
+            rise = this.y - this.start.y;
+            run = this.x - this.start.x;
+        }
+        var scaleFactor = this.speed / distBetweenEndpoints;
+        var deltaY = rise * scaleFactor;
+        var deltaX = run * scaleFactor;
+        if (Math.abs(deltaY) > Math.abs(this.speed) ||
+            Math.abs(deltaX) > Math.abs(this.speed)) {
+            console.warn("programmer error: delta is greater than speed");
+            console.warn("delta: ", deltaX, ", speed: ", this.speed);
+        }
+        this.accel = deltaY;
+        var canMoveY = Util.canMoveTo(this, "up");
+        var canMoveX = Util.canMoveTo(this, this.speed > 0 ? "right" : "left", Math.abs(deltaX));
+        deltaY = canMoveY - this.y;
+        deltaX = canMoveX - this.x;
+        var collisions = Util.isCollidingWith(this);
+        for (var _i = 0, collisions_2 = collisions; _i < collisions_2.length; _i++) {
+            var c = collisions_2[_i];
+            if (c.bottomI() + 1 !== this.topI())
+                continue;
+            // for each item sitting on this platform, move item
+            c.x += deltaX;
+            c.y += deltaY;
+            c.div.style.left = c.x + "px";
+            c.div.style.top = c.y + "px";
+        }
+        this.y = canMoveY;
+        this.x = canMoveX;
+        this.div.style.top = this.y + "px";
+        this.div.style.left = this.x + "px";
+        this.speed = origSpeed;
+        if (this.x === this.end.x && this.y === this.end.y ||
+            this.x === this.start.x && this.y === this.start.y)
+            this.speed = -this.speed;
+    };
+    return Platform;
+}(Brick));
 var Coin = /** @class */ (function (_super) {
     __extends(Coin, _super);
     function Coin(x, y) {
@@ -126,8 +223,8 @@ var Coin = /** @class */ (function (_super) {
     Coin.prototype.stepState = function () {
         var p = GameState.getPlayer();
         var collisions = Util.isCollidingWith(this);
-        for (var _i = 0, collisions_2 = collisions; _i < collisions_2.length; _i++) {
-            var c = collisions_2[_i];
+        for (var _i = 0, collisions_3 = collisions; _i < collisions_3.length; _i++) {
+            var c = collisions_3[_i];
             if (p === c) {
                 GameState.setNCollectedCoins(GameState.getNCollectedCoins() + 1);
                 return this.die();
@@ -150,8 +247,8 @@ var PowerUp = /** @class */ (function (_super) {
     PowerUp.prototype.stepState = function () {
         var p = GameState.getPlayer();
         var collisions = Util.isCollidingWith(this);
-        for (var _i = 0, collisions_3 = collisions; _i < collisions_3.length; _i++) {
-            var c = collisions_3[_i];
+        for (var _i = 0, collisions_4 = collisions; _i < collisions_4.length; _i++) {
+            var c = collisions_4[_i];
             if (p === c) {
                 this.makeBigPlayer();
                 return this.die();
@@ -232,8 +329,8 @@ var BadGuy = /** @class */ (function (_super) {
         var p = GameState.getPlayer();
         if (p.bottomI() + 1 == this.topI()) {
             var collisions = Util.isCollidingWith(this);
-            for (var _i = 0, collisions_4 = collisions; _i < collisions_4.length; _i++) {
-                var col = collisions_4[_i];
+            for (var _i = 0, collisions_5 = collisions; _i < collisions_5.length; _i++) {
+                var col = collisions_5[_i];
                 if (col == p)
                     return true;
             }
@@ -243,8 +340,8 @@ var BadGuy = /** @class */ (function (_super) {
     BadGuy.prototype.touchingPlayer = function () {
         var p = GameState.getPlayer();
         var collisions = Util.isCollidingWith(this);
-        for (var _i = 0, collisions_5 = collisions; _i < collisions_5.length; _i++) {
-            var c = collisions_5[_i];
+        for (var _i = 0, collisions_6 = collisions; _i < collisions_6.length; _i++) {
+            var c = collisions_6[_i];
             if (p === c)
                 return true;
         }
@@ -495,14 +592,16 @@ var Player = /** @class */ (function (_super) {
         if (origX > scrollLine)
             for (var _i = 0, _a = GameState.ws; _i < _a.length; _i++) {
                 var w = _a[_i];
-                w.x -= origX - scrollLine;
-                w.div.style.left = w.x + "px";
+                w.scroll(-origX + scrollLine);
+                //w.x -= origX - scrollLine;
+                //w.div.style.left = w.x + "px";
             }
         else if (origX < scrollLine2)
             for (var _b = 0, _c = GameState.ws; _b < _c.length; _b++) {
                 var w = _c[_b];
-                w.x += scrollLine2 - origX;
-                w.div.style.left = w.x + "px";
+                w.scroll(scrollLine2 - origX);
+                //w.x += scrollLine2 - origX;
+                //w.div.style.left = w.x + "px";
             }
     };
     Player.prototype.stepState = function () {
@@ -547,8 +646,8 @@ var Teleporter = /** @class */ (function (_super) {
     }
     Teleporter.prototype.stepState = function () {
         var collisions = Util.isCollidingWith(this);
-        for (var _i = 0, collisions_6 = collisions; _i < collisions_6.length; _i++) {
-            var c = collisions_6[_i];
+        for (var _i = 0, collisions_7 = collisions; _i < collisions_7.length; _i++) {
+            var c = collisions_7[_i];
             if (c === GameState.getPlayer()) {
                 var szPlayer = GameState.getPlayer().sz;
                 GameState.clearTimeouts();
@@ -672,8 +771,8 @@ var UtilHelpers = /** @class */ (function () {
             p.x += j;
             var collisions = Util.isCollidingWith(p);
             var shouldBreak = false;
-            for (var _i = 0, collisions_7 = collisions; _i < collisions_7.length; _i++) {
-                var c = collisions_7[_i];
+            for (var _i = 0, collisions_8 = collisions; _i < collisions_8.length; _i++) {
+                var c = collisions_8[_i];
                 if (c.getClassName() !== "coin" &&
                     c.getClassName() !== "teleporter" &&
                     (p.rightI() + 1 === c.leftI() && maxStep > 0 ||
@@ -697,8 +796,8 @@ var UtilHelpers = /** @class */ (function () {
             p.y += p.accel > 0 ? i : -i;
             var collisions = Util.isCollidingWith(p);
             var shouldBreak = false;
-            for (var _i = 0, collisions_8 = collisions; _i < collisions_8.length; _i++) {
-                var c = collisions_8[_i];
+            for (var _i = 0, collisions_9 = collisions; _i < collisions_9.length; _i++) {
+                var c = collisions_9[_i];
                 if (c.getClassName() !== "coin" &&
                     c.getClassName() !== "teleporter" &&
                     (p.topI() - 1 === c.bottomI() && p.accel < 0 ||
@@ -828,8 +927,8 @@ var Util = /** @class */ (function () {
                 if (p !== w && p.bottomI() + 1 == w.topI() &&
                     w.getClassName() !== "teleporter") {
                     var collisions = Util.isCollidingWith(p);
-                    for (var _b = 0, collisions_9 = collisions; _b < collisions_9.length; _b++) {
-                        var c = collisions_9[_b];
+                    for (var _b = 0, collisions_10 = collisions; _b < collisions_10.length; _b++) {
+                        var c = collisions_10[_b];
                         if (c === w) {
                             ret = true;
                             shouldBreak = true;
