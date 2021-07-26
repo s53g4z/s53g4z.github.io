@@ -143,6 +143,36 @@ class Platform extends Brick {
 		this.start.x += amount;
 		this.end.x += amount;
 	}
+	// ???
+	findHighestWorldItem(baseItem: WorldItem) {
+		let stack = new Array<WorldItem>();
+		let base = baseItem;
+		stack.push(base);
+		for (;;) {  // for each layer of items on the stack
+			let tallestInLayer = null;
+			for (const w of GameState.ws) {
+				if (w.bottomI() + 1 !== base.topI())
+					continue;  // if can't collide with base, continue
+				const collisions: Array<WorldItem> =
+					Util.isCollidingWith(base);
+				for (const c of collisions)
+					if (c === w) {  // if colliding with
+						stack.push(w);
+						if(!tallestInLayer ||  // if taller than tIL
+							w.height > tallestInLayer.height) {
+							tallestInLayer = w;  // remember it
+							break;
+						}
+					}
+				// search rest of world-state for even taller items in the layer
+			}
+			if (tallestInLayer)  // found the tallest!
+				base = tallestInLayer;  // continue looking up the stack
+			else  // no items in layer
+				break;
+		}
+		return stack;
+	}
 	stepState(): void {
 		if (this.speed === 0)
 			return;
@@ -166,53 +196,60 @@ class Platform extends Brick {
 				this.x = this.end.x;
 				this.y = this.end.y;
 			}
+			distBetweenEndpoints = 0;
+		} else {
+			const origSpeed = this.speed;
+			if (distBetweenEndpoints < Math.abs(this.speed))
+				this.speed = distBetweenEndpoints * (this.speed > 0 ? 1 : -1);
+			let rise = 0;
+			let run = 0;
+			if (this.speed > 0) {
+				rise = this.end.y - this.y;
+				run = this.end.x - this.x;
+			} else {  // speed < 0
+				rise = this.y - this.start.y;
+				run = this.x - this.start.x;
+			}
+			
+			const scaleFactor = this.speed / distBetweenEndpoints;
+			let deltaY = rise * scaleFactor;
+			let deltaX = run * scaleFactor;
+			if (Math.abs(deltaY) > Math.abs(this.speed) + 0.01 ||  // arbitrary E
+				Math.abs(deltaX) > Math.abs(this.speed) + 0.01) {  // ibid
+				console.warn("programmer error: delta is greater than speed");
+				console.warn("delta: ", deltaX, ", speed: ", this.speed);
+			}
+			//this.accel = deltaY;
+			const stack = this.findHighestWorldItem(this);
+			let highestInStack = stack[0];  // moving down, so get lowest item
+			if (deltaY < 0)  // moving up, so get highest item
+				highestInStack = stack[stack.length - 1];
+			const origAccelHIS = highestInStack.accel;
+			highestInStack.accel = deltaY;
+			let canMoveY = Util.canMoveTo(highestInStack, "up");
+			let canMoveX = Util.canMoveTo(this,
+				this.speed > 0 ? "right" : "left", Math.abs(deltaX));
+			highestInStack.accel = origAccelHIS;
+			deltaY = canMoveY - highestInStack.topI();
+			deltaX = Math.round(canMoveX - this.x);
+			for (let i = 1; i < stack.length; i++)
+				if (stack[i].getClassName() === "platform") {
+					deltaY = 0;
+				}
+			
+			for (const w of stack) {
+				w.x += deltaX;
+				w.y += deltaY;
+				w.div.style.left = w.x + "px";
+				w.div.style.top = w.y + "px";
+			}
+			this.speed = origSpeed;
 		}
-		const origSpeed = this.speed;
-		if (distBetweenEndpoints < Math.abs(this.speed))
-			this.speed = distBetweenEndpoints * this.speed > 0 ? 1 : -1;
-		let rise = 0;
-		let run = 0;
-		if (this.speed > 0) {
-			rise = this.end.y - this.y;
-			run = this.end.x - this.x;
-		} else {  // speed < 0
-			rise = this.y - this.start.y;
-			run = this.x - this.start.x;
-		}
-		const scaleFactor = this.speed / distBetweenEndpoints;
-		let deltaY = rise * scaleFactor;
-		let deltaX = run * scaleFactor;
-		if (Math.abs(deltaY) > Math.abs(this.speed) ||
-			Math.abs(deltaX) > Math.abs(this.speed)) {
-			console.warn("programmer error: delta is greater than speed");
-			console.warn("delta: ", deltaX, ", speed: ", this.speed);
-		}
-		this.accel = deltaY;
-		let canMoveY = Util.canMoveTo(this, "up");
-		let canMoveX = Util.canMoveTo(this, this.speed > 0 ? "right" : "left",
-			Math.abs(deltaX));
-		deltaY = canMoveY - this.y;
-		deltaX = canMoveX - this.x;
 		
-		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
-		for (const c of collisions) {
-			if (c.bottomI() + 1 !== this.topI())
-				continue;
-			// for each item sitting on this platform, move item
-			c.x += deltaX;
-			c.y += deltaY;
-			c.div.style.left = c.x + "px";
-			c.div.style.top = c.y + "px";
-		}
-		
-		this.y = canMoveY;
-		this.x = canMoveX;
-		this.div.style.top = this.y + "px";
-		this.div.style.left = this.x + "px";
-		
-		this.speed = origSpeed;
 		if (this.x === this.end.x && this.y === this.end.y ||
-			this.x === this.start.x && this.y === this.start.y)
+			this.x === this.start.x && this.y === this.start.y ||
+			this.x > this.end.x || this.x < this.start.x ||
+			false)
 			this.speed = -this.speed;
 	}
 }

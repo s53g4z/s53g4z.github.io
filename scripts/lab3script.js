@@ -140,6 +140,38 @@ var Platform = /** @class */ (function (_super) {
         this.start.x += amount;
         this.end.x += amount;
     };
+    // ???
+    Platform.prototype.findHighestWorldItem = function (baseItem) {
+        var stack = new Array();
+        var base = baseItem;
+        stack.push(base);
+        for (;;) { // for each layer of items on the stack
+            var tallestInLayer = null;
+            for (var _i = 0, _a = GameState.ws; _i < _a.length; _i++) {
+                var w = _a[_i];
+                if (w.bottomI() + 1 !== base.topI())
+                    continue; // if can't collide with base, continue
+                var collisions = Util.isCollidingWith(base);
+                for (var _b = 0, collisions_2 = collisions; _b < collisions_2.length; _b++) {
+                    var c = collisions_2[_b];
+                    if (c === w) { // if colliding with
+                        stack.push(w);
+                        if (!tallestInLayer || // if taller than tIL
+                            w.height > tallestInLayer.height) {
+                            tallestInLayer = w; // remember it
+                            break;
+                        }
+                    }
+                }
+                // search rest of world-state for even taller items in the layer
+            }
+            if (tallestInLayer) // found the tallest!
+                base = tallestInLayer; // continue looking up the stack
+            else // no items in layer
+                break;
+        }
+        return stack;
+    };
     Platform.prototype.stepState = function () {
         if (this.speed === 0)
             return;
@@ -163,51 +195,59 @@ var Platform = /** @class */ (function (_super) {
                 this.x = this.end.x;
                 this.y = this.end.y;
             }
+            distBetweenEndpoints = 0;
         }
-        var origSpeed = this.speed;
-        if (distBetweenEndpoints < Math.abs(this.speed))
-            this.speed = distBetweenEndpoints * this.speed > 0 ? 1 : -1;
-        var rise = 0;
-        var run = 0;
-        if (this.speed > 0) {
-            rise = this.end.y - this.y;
-            run = this.end.x - this.x;
+        else {
+            var origSpeed = this.speed;
+            if (distBetweenEndpoints < Math.abs(this.speed))
+                this.speed = distBetweenEndpoints * (this.speed > 0 ? 1 : -1);
+            var rise = 0;
+            var run = 0;
+            if (this.speed > 0) {
+                rise = this.end.y - this.y;
+                run = this.end.x - this.x;
+            }
+            else { // speed < 0
+                rise = this.y - this.start.y;
+                run = this.x - this.start.x;
+            }
+            var scaleFactor = this.speed / distBetweenEndpoints;
+            var deltaY = rise * scaleFactor;
+            var deltaX = run * scaleFactor;
+            if (Math.abs(deltaY) > Math.abs(this.speed) + 0.01 || // arbitrary E
+                Math.abs(deltaX) > Math.abs(this.speed) + 0.01) { // ibid
+                console.warn("programmer error: delta is greater than speed");
+                console.warn("delta: ", deltaX, ", speed: ", this.speed);
+            }
+            //this.accel = deltaY;
+            var stack = this.findHighestWorldItem(this);
+            var highestInStack = stack[0]; // moving down, so get lowest item
+            if (deltaY < 0) // moving up, so get highest item
+                highestInStack = stack[stack.length - 1];
+            var origAccelHIS = highestInStack.accel;
+            highestInStack.accel = deltaY;
+            var canMoveY = Util.canMoveTo(highestInStack, "up");
+            var canMoveX = Util.canMoveTo(this, this.speed > 0 ? "right" : "left", Math.abs(deltaX));
+            highestInStack.accel = origAccelHIS;
+            deltaY = canMoveY - highestInStack.topI();
+            deltaX = Math.round(canMoveX - this.x);
+            for (var i = 1; i < stack.length; i++)
+                if (stack[i].getClassName() === "platform") {
+                    deltaY = 0;
+                }
+            for (var _i = 0, stack_1 = stack; _i < stack_1.length; _i++) {
+                var w = stack_1[_i];
+                w.x += deltaX;
+                w.y += deltaY;
+                w.div.style.left = w.x + "px";
+                w.div.style.top = w.y + "px";
+            }
+            this.speed = origSpeed;
         }
-        else { // speed < 0
-            rise = this.y - this.start.y;
-            run = this.x - this.start.x;
-        }
-        var scaleFactor = this.speed / distBetweenEndpoints;
-        var deltaY = rise * scaleFactor;
-        var deltaX = run * scaleFactor;
-        if (Math.abs(deltaY) > Math.abs(this.speed) ||
-            Math.abs(deltaX) > Math.abs(this.speed)) {
-            console.warn("programmer error: delta is greater than speed");
-            console.warn("delta: ", deltaX, ", speed: ", this.speed);
-        }
-        this.accel = deltaY;
-        var canMoveY = Util.canMoveTo(this, "up");
-        var canMoveX = Util.canMoveTo(this, this.speed > 0 ? "right" : "left", Math.abs(deltaX));
-        deltaY = canMoveY - this.y;
-        deltaX = canMoveX - this.x;
-        var collisions = Util.isCollidingWith(this);
-        for (var _i = 0, collisions_2 = collisions; _i < collisions_2.length; _i++) {
-            var c = collisions_2[_i];
-            if (c.bottomI() + 1 !== this.topI())
-                continue;
-            // for each item sitting on this platform, move item
-            c.x += deltaX;
-            c.y += deltaY;
-            c.div.style.left = c.x + "px";
-            c.div.style.top = c.y + "px";
-        }
-        this.y = canMoveY;
-        this.x = canMoveX;
-        this.div.style.top = this.y + "px";
-        this.div.style.left = this.x + "px";
-        this.speed = origSpeed;
         if (this.x === this.end.x && this.y === this.end.y ||
-            this.x === this.start.x && this.y === this.start.y)
+            this.x === this.start.x && this.y === this.start.y ||
+            this.x > this.end.x || this.x < this.start.x ||
+            false)
             this.speed = -this.speed;
     };
     return Platform;
