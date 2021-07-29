@@ -30,7 +30,7 @@ var PreLoadImg = /** @class */ (function () {
     PreLoadImg.getImg = function (index) {
         if (index >= this.imgElems.length)
             throw new Error("tried to access nonexistent image in cache");
-        var imgElem = this.imgElems[index];
+        var imgElem = this.imgElems[index].cloneNode();
         imgElem.style.position = "";
         imgElem.style.opacity = "";
         imgElem.style.width = "100%";
@@ -126,7 +126,7 @@ var Platform = /** @class */ (function (_super) {
         if (start === void 0) { start = { x: 0, y: 0 }; }
         if (end === void 0) { end = { x: 0, y: 0 }; }
         if (speed === void 0) { speed = 0; }
-        var _this = _super.call(this, start.x, start.y, width, height, "orange", "platform", false) || this;
+        var _this = _super.call(this, start.x, start.y, width, height, "blueviolet", "platform", false) || this;
         _this.start = start;
         _this.end = end;
         _this.speed = speed;
@@ -350,6 +350,134 @@ var AliveWorldItem = /** @class */ (function (_super) {
     }
     return AliveWorldItem;
 }(WorldItem));
+var Turret = /** @class */ (function (_super) {
+    __extends(Turret, _super);
+    function Turret(x, y) {
+        var _this = _super.call(this, x, y, 10, 50, "", "turret") || this;
+        _this.framesPeaceful = 0;
+        return _this;
+    }
+    Turret.prototype.calculateTheta = function () {
+        var p = GameState.getPlayer();
+        var playerCenter = { x: p.x + p.width / 2, y: p.y + p.height / 2 };
+        var turretCenter = { x: this.x + 25, y: this.y + 25 };
+        var sideX = turretCenter.x - playerCenter.x;
+        var sideY = turretCenter.y - playerCenter.y;
+        var theta = 0; // in degrees
+        if (sideY === 0)
+            theta = sideX > 0 ? 180 : 0; // player on left or right
+        else { // (sideY !== 0)
+            theta = Math.atan(sideY / sideX) * 180 / 3.141592653589;
+            ;
+            if (sideX < 0) {
+                theta = -theta;
+            }
+            else
+                theta = 180 - theta;
+        }
+        var jitter = 5 * (Math.random() * 2 - 1);
+        return theta + jitter;
+    };
+    Turret.prototype.stepState = function () {
+        if (++this.framesPeaceful < 6) {
+            return;
+        }
+        else
+            this.framesPeaceful = 0;
+        var theta = this.calculateTheta();
+        var laserHandle = new Laser(this.x + this.width / 2, this.y + this.height / 2, 25, theta);
+        laserHandle.div.style.opacity = "0";
+        this.div.style.transform = "rotate(" + (-theta + 90) + "deg)";
+    };
+    return Turret;
+}(AliveWorldItem));
+var Laser = /** @class */ (function (_super) {
+    __extends(Laser, _super);
+    function Laser(x, y, speed, angleD) {
+        if (speed === void 0) { speed = 20; }
+        if (angleD === void 0) { angleD = 0; }
+        var _this = _super.call(this, x, y, 25, 5, "red", "laser") || this;
+        _this.speed = speed;
+        _this.distanceTraveled = 0;
+        _this.theta = angleD % 360 * 3.141592653589 / 180;
+        // imperfect b/c moveSelf() rounds movement
+        _this.div.style.transform = "rotate(" + (-angleD % 360) + "deg)";
+        return _this;
+    }
+    Laser.prototype.moveSelf = function () {
+        var wantMoveY = Math.round(this.speed * Math.sin(this.theta) * -1
+            * 10) / 10;
+        var wantMoveX = Math.round(this.speed * Math.cos(this.theta)
+            * 10) / 10;
+        this.accel = wantMoveY;
+        // buggy b/c lasers can rotate around
+        this.x = Util.canMoveTo(this, wantMoveX > 0 ? "right" : "left", Math.abs(wantMoveX));
+        this.y = Util.canMoveTo(this, "down");
+    };
+    Laser.prototype.decorateSelf = function () {
+        this.div.style.left = this.x + "px";
+        this.div.style.top = this.y + "px";
+        this.div.style.opacity = "1";
+        var collisions = Util.isCollidingWith(this);
+        for (var _i = 0, collisions_5 = collisions; _i < collisions_5.length; _i++) {
+            var c = collisions_5[_i];
+            if (c.getClassName() === "turret")
+                this.div.style.opacity = "0";
+        }
+    };
+    Laser.prototype.processCollisions = function () {
+        var collisions = Util.isCollidingWith(this);
+        for (var _i = 0, collisions_6 = collisions; _i < collisions_6.length; _i++) {
+            var c = collisions_6[_i];
+            if (c === GameState.getPlayer() || c.getClassName() === "badguy")
+                c.die();
+            else if (c.getClassName() === "bomb")
+                c.die(true);
+            else if (c.getClassName() === "brick" && c.destructible)
+                c.die();
+        }
+        var nCollisions = collisions.length;
+        for (var i = 0; i < collisions.length; i++)
+            if (collisions[i].getClassName() === "laser" ||
+                collisions[i].getClassName() === "turret")
+                nCollisions--; // allow lasers to overlap lasers and turrets
+        return nCollisions;
+    };
+    Laser.prototype.stepState = function () {
+        this.moveSelf();
+        this.decorateSelf();
+        var nCollisions = this.processCollisions();
+        this.distanceTraveled += Math.abs(this.speed);
+        if (nCollisions > 0 ||
+            this.distanceTraveled > 5000 ||
+            this.y === Util.bottomEdge - this.height - 1 ||
+            this.y === Util.topEdge + 1)
+            this.die();
+    };
+    return Laser;
+}(AliveWorldItem));
+var BuzzSaw = /** @class */ (function (_super) {
+    __extends(BuzzSaw, _super);
+    function BuzzSaw(x, y, width, height) {
+        if (width === void 0) { width = 50; }
+        if (height === void 0) { height = 50; }
+        var _this = _super.call(this, x, y, width, height, "", "buzzsaw") || this;
+        var imgHandle = PreLoadImg.getImg(1);
+        _this.div.appendChild(imgHandle);
+        return _this;
+    }
+    BuzzSaw.prototype.stepState = function () {
+        var collisions = Util.isCollidingWithCircular(this);
+        for (var _i = 0, collisions_7 = collisions; _i < collisions_7.length; _i++) {
+            var c = collisions_7[_i];
+            if (c === GameState.getPlayer() || c.getClassName() === "badguy")
+                c.die();
+            else if (c.getClassName() === "bomb")
+                c.die(true);
+        }
+    };
+    return BuzzSaw;
+}(AliveWorldItem));
 var BadGuy = /** @class */ (function (_super) {
     __extends(BadGuy, _super);
     function BadGuy(x, y, width, height, color, dir, patrol, ms, className) {
@@ -369,8 +497,8 @@ var BadGuy = /** @class */ (function (_super) {
         var p = GameState.getPlayer();
         if (p.bottomI() + 1 == this.topI()) {
             var collisions = Util.isCollidingWith(this);
-            for (var _i = 0, collisions_5 = collisions; _i < collisions_5.length; _i++) {
-                var col = collisions_5[_i];
+            for (var _i = 0, collisions_8 = collisions; _i < collisions_8.length; _i++) {
+                var col = collisions_8[_i];
                 if (col == p)
                     return true;
             }
@@ -380,8 +508,8 @@ var BadGuy = /** @class */ (function (_super) {
     BadGuy.prototype.touchingPlayer = function () {
         var p = GameState.getPlayer();
         var collisions = Util.isCollidingWith(this);
-        for (var _i = 0, collisions_6 = collisions; _i < collisions_6.length; _i++) {
-            var c = collisions_6[_i];
+        for (var _i = 0, collisions_9 = collisions; _i < collisions_9.length; _i++) {
+            var c = collisions_9[_i];
             if (p === c)
                 return true;
         }
@@ -389,15 +517,16 @@ var BadGuy = /** @class */ (function (_super) {
     };
     BadGuy.prototype.die = function () {
         var _this = this;
-        GameState.getPlayer().accel = 0;
+        //GameState.getPlayer().accel = 0;
         this.div.innerText = "x.x";
-        this.div.className = "deadbadguy";
+        this.setClassName("deadbadguy");
         this.height /= 2;
         this.y += this.height;
         this.div.style.top = this.y + "px";
         this.div.style.height = this.height + "px";
         if (this.dir === "right")
             this.div.style.textAlign = "end";
+        this.div.style.zIndex = "-1";
         this.alive = false;
         var timeout = window.setTimeout(function () {
             GameState.removeFromWS(_this);
@@ -490,11 +619,12 @@ var Bomb = /** @class */ (function (_super) {
                 c.die();
         }
     };
-    Bomb.prototype.die = function () {
+    Bomb.prototype.die = function (immediately) {
         var _this = this;
+        if (immediately === void 0) { immediately = false; }
         if (this.isTicking)
             return;
-        GameState.getPlayer().accel = 0;
+        //GameState.getPlayer().accel = 0;
         this.div.innerText = "O.O";
         this.div.className = "tickingbomb";
         var flickerHandle = window.setInterval(function () {
@@ -511,7 +641,7 @@ var Bomb = /** @class */ (function (_super) {
                 GameState.removeFromWS(_this);
             }, 500);
             GameState.recordTimeout(deleteBombHandle);
-        }, 2000);
+        }, immediately ? 0 : 2000);
         GameState.recordTimeout(stopflickerHandle);
         this.isTicking = true;
     };
@@ -531,11 +661,13 @@ var Player = /** @class */ (function (_super) {
     __extends(Player, _super);
     function Player(x, y, sz) {
         var _this = _super.call(this, x, y, 50, 50, "", "player") || this;
+        _this.div.style.zIndex = "1";
         _this.sz = sz;
         if (_this.sz === "big") {
             _this.sz = "smol";
             _this.grow();
         }
+        _this.wasOnBadGuy = false;
         _this.invincible = false;
         _this.accel = 0;
         _this.isJumping = false;
@@ -633,31 +765,50 @@ var Player = /** @class */ (function (_super) {
             for (var _i = 0, _a = GameState.ws; _i < _a.length; _i++) {
                 var w = _a[_i];
                 w.scroll(-origX + scrollLine);
-                //w.x -= origX - scrollLine;
-                //w.div.style.left = w.x + "px";
             }
         else if (origX < scrollLine2)
             for (var _b = 0, _c = GameState.ws; _b < _c.length; _b++) {
                 var w = _c[_b];
                 w.scroll(scrollLine2 - origX);
-                //w.x += scrollLine2 - origX;
-                //w.div.style.left = w.x + "px";
             }
     };
-    Player.prototype.stepState = function () {
-        if (this.invincible) {
-            if (this.getColor() === "limegreen")
-                this.setColor("greenyellow");
-            else
-                this.setColor("limegreen");
+    Player.prototype.uwu = function () {
+        var owo = this.div.getElementsByClassName("playertext")[0];
+        if (!owo)
+            throw new Error("player must have a child div!");
+        return owo;
+    };
+    Player.prototype.flicker = function () {
+        if (this.getColor() === "limegreen")
+            this.setColor("greenyellow");
+        else
+            this.setColor("limegreen"); // also see the CSS file
+    };
+    Player.prototype.onBadGuy = function () {
+        for (var _i = 0, _a = GameState.ws; _i < _a.length; _i++) {
+            var w = _a[_i];
+            if (w !== this && (w.getClassName() === "badguy" ||
+                w.getClassName() === "bomb" ||
+                w.getClassName() === "tickingbomb") &&
+                this.bottomI() + 1 === w.topI()) {
+                var collisions = Util.isCollidingWith(this);
+                for (var _b = 0, collisions_10 = collisions; _b < collisions_10.length; _b++) {
+                    var c = collisions_10[_b];
+                    if (c === w)
+                        return true;
+                }
+            }
         }
+        return false;
+    };
+    Player.prototype.stepState = function () {
+        if (this.invincible)
+            this.flicker();
         if (this.bottomI() === Util.bottomEdge - 1) {
             this.die();
             return;
         }
-        var owo = this.div.getElementsByClassName("playertext")[0];
-        if (!owo)
-            throw new Error("player must have a child div!");
+        var owo = this.uwu();
         if (Util.isDDown) {
             this.x = Util.canMoveTo(this, "right", 9);
             owo.style.textAlign = "end";
@@ -666,11 +817,15 @@ var Player = /** @class */ (function (_super) {
             this.x = Util.canMoveTo(this, "left", 9);
             owo.style.textAlign = "left";
         }
-        if (Util.isWDown && !this.alreadyJumped &&
-            Util.onSolidSurface(this))
+        if (Util.isWDown && (this.wasOnBadGuy ||
+            !this.alreadyJumped && Util.onSolidSurface(this)))
             this.jump();
         else
             this.fall();
+        if (this.onBadGuy())
+            this.wasOnBadGuy = true;
+        else
+            this.wasOnBadGuy = false;
         this.div.style.left = this.x + "px";
         this.div.style.top = this.y + "px";
         this.maybeScroll();
@@ -686,8 +841,8 @@ var Teleporter = /** @class */ (function (_super) {
     }
     Teleporter.prototype.stepState = function () {
         var collisions = Util.isCollidingWith(this);
-        for (var _i = 0, collisions_7 = collisions; _i < collisions_7.length; _i++) {
-            var c = collisions_7[_i];
+        for (var _i = 0, collisions_11 = collisions; _i < collisions_11.length; _i++) {
+            var c = collisions_11[_i];
             if (c === GameState.getPlayer()) {
                 var szPlayer = GameState.getPlayer().sz;
                 GameState.clearTimeouts();
@@ -805,18 +960,22 @@ var UtilHelpers = /** @class */ (function () {
     }
     // might need a rewrite
     UtilHelpers.canMoveStepperX = function (p, maxStep) {
-        var canMoveX = p.x; //maxStep;
+        var canMoveToX = p.x;
         for (var i = 0; i < Math.abs(maxStep); i++) {
             var j = maxStep > 0 ? i : -i;
             p.x += j;
             var collisions = Util.isCollidingWith(p);
             var shouldBreak = false;
-            for (var _i = 0, collisions_8 = collisions; _i < collisions_8.length; _i++) {
-                var c = collisions_8[_i];
+            for (var _i = 0, collisions_12 = collisions; _i < collisions_12.length; _i++) {
+                var c = collisions_12[_i];
                 if (c.getClassName() !== "coin" &&
                     c.getClassName() !== "teleporter" &&
-                    (p.rightI() + 1 === c.leftI() && maxStep > 0 ||
-                        p.leftI() - 1 === c.rightI() && maxStep < 0)) {
+                    c.getClassName() !== "deadbadguy" &&
+                    c.getClassName() !== "buzzsaw" &&
+                    c.getClassName() !== "laser" &&
+                    !(p.getClassName() === "turret" && c.getClassName() === "laser") && // not case of laser overlapping a turret
+                    (maxStep > 0 && p.rightI() + 1 === c.leftI() ||
+                        maxStep < 0 && p.leftI() - 1 === c.rightI())) {
                     shouldBreak = true; // found a collision, stop
                     break;
                 }
@@ -824,24 +983,28 @@ var UtilHelpers = /** @class */ (function () {
             p.x -= j;
             if (shouldBreak)
                 break;
-            canMoveX += maxStep > 0 ? 1 : -1;
+            canMoveToX += maxStep > 0 ? 1 : -1;
         }
-        return canMoveX;
+        return canMoveToX;
     };
     // might also need a rewrite. really similar to canMoveStepperX().
     UtilHelpers.canMoveStepperY = function (p) {
-        var canMoveY = p.y;
+        var canMoveToY = p.y;
         for (var i = 0; i < Math.abs(p.accel); i++) {
             var savedpy = p.y;
             p.y += p.accel > 0 ? i : -i;
             var collisions = Util.isCollidingWith(p);
             var shouldBreak = false;
-            for (var _i = 0, collisions_9 = collisions; _i < collisions_9.length; _i++) {
-                var c = collisions_9[_i];
+            for (var _i = 0, collisions_13 = collisions; _i < collisions_13.length; _i++) {
+                var c = collisions_13[_i];
                 if (c.getClassName() !== "coin" &&
                     c.getClassName() !== "teleporter" &&
-                    (p.topI() - 1 === c.bottomI() && p.accel < 0 ||
-                        p.bottomI() + 1 === c.topI() && p.accel > 0)) {
+                    c.getClassName() !== "deadbadguy" &&
+                    c.getClassName() !== "buzzsaw" &&
+                    c.getClassName() !== "laser" &&
+                    !(p.getClassName() === "turret" && c.getClassName() === "laser") && // not case of laser overlapping a turret
+                    (p.accel < 0 && p.topI() - 1 === c.bottomI() ||
+                        p.accel > 0 && p.bottomI() + 1 === c.topI())) {
                     shouldBreak = true;
                     break;
                 }
@@ -849,14 +1012,13 @@ var UtilHelpers = /** @class */ (function () {
             p.y = savedpy;
             if (shouldBreak)
                 break;
-            canMoveY += p.accel > 0 ? 1 : -1;
+            canMoveToY += p.accel > 0 ? 1 : -1;
         }
-        var newPosY = canMoveY;
-        if (newPosY < Util.topEdge)
-            newPosY = Util.topEdge + 1;
-        if (newPosY + p.height > Util.bottomEdge)
-            newPosY = Util.bottomEdge - p.height - 1;
-        return newPosY;
+        if (canMoveToY < Util.topEdge)
+            canMoveToY = Util.topEdge + 1;
+        if (canMoveToY + p.height > Util.bottomEdge)
+            canMoveToY = Util.bottomEdge - p.height - 1;
+        return canMoveToY;
     };
     UtilHelpers.isCollidingHoriz = function (v, w) {
         return true &&
@@ -939,6 +1101,7 @@ var Util = /** @class */ (function () {
     };
     Util.preloadImages = function () {
         PreLoadImg.preload("images/arrowup.svg");
+        PreLoadImg.preload("images/buzzsaw.svg");
     };
     // client-callable fn
     Util.canMoveTo = function (p, direction, speed) {
@@ -965,10 +1128,11 @@ var Util = /** @class */ (function () {
                 var w = _a[_i];
                 var shouldBreak = false;
                 if (p !== w && p.bottomI() + 1 == w.topI() &&
-                    w.getClassName() !== "teleporter") {
+                    w.getClassName() !== "teleporter" &&
+                    w.getClassName() !== "deadbadguy") {
                     var collisions = Util.isCollidingWith(p);
-                    for (var _b = 0, collisions_10 = collisions; _b < collisions_10.length; _b++) {
-                        var c = collisions_10[_b];
+                    for (var _b = 0, collisions_14 = collisions; _b < collisions_14.length; _b++) {
+                        var c = collisions_14[_b];
                         if (c === w) {
                             ret = true;
                             shouldBreak = true;
@@ -1016,6 +1180,38 @@ var Util = /** @class */ (function () {
         v.y++;
         v.width -= 2;
         v.height -= 2;
+        return ret;
+    };
+    Util.isCollidingWithCircular = function (v) {
+        if (v.width !== v.height)
+            throw new Error("iscollidingwithcircular cant use unsquare rect");
+        var vCenter = { x: v.leftI() + v.width / 2,
+            y: v.topI() + v.height / 2 };
+        var ret = new Array();
+        for (var _i = 0, _a = GameState.ws; _i < _a.length; _i++) {
+            var w = _a[_i];
+            var centersArr = new Array();
+            centersArr.push({ x: w.leftI() + w.width / 2,
+                y: w.topI() + w.height / 2 });
+            if (w.height === w.width * 2) { // probably a tall player
+                centersArr.pop();
+                centersArr.push({ x: w.leftI() + w.width / 2,
+                    y: w.topI() + w.height / 4 });
+                centersArr.push({ x: w.leftI() + w.width / 2,
+                    y: w.topI() + w.height / 4 + w.height / 2 });
+            }
+            for (var _b = 0, centersArr_1 = centersArr; _b < centersArr_1.length; _b++) {
+                var wCenter = centersArr_1[_b];
+                var distBetweenVW = Math.sqrt(Math.pow(vCenter.x - wCenter.x, 2) + // x2-x1
+                    Math.pow(vCenter.y - wCenter.y, 2)); // y2-y1
+                var vRadius = v.width / 2;
+                var wRadius = w.width / 2;
+                if (distBetweenVW <= vRadius + wRadius) {
+                    ret.push(w);
+                    break;
+                }
+            }
+        }
         return ret;
     };
     // client-callable fn
@@ -1105,17 +1301,17 @@ var Init = /** @class */ (function () {
     Init.World1 = function (sz) {
         console.log("Entering World 1");
         GameState.currLevel = Init.World1;
-        new Brick(100, 400, 75, 10, "blue");
-        new Brick(200, 330, 100, 10, "blueviolet", "brick", true);
-        new Brick(230, 345, 10, 10, "blue", "brick", true);
+        new Brick(100, 400, 75, 10, "violet");
+        new Brick(200, 330, 100, 10, "skyblue", "brick", true);
+        new Brick(230, 345, 10, 10, "violet", "brick", true);
         new Player(10, 10, sz);
-        new Brick(300, 450, 10, 10, "blue");
+        new Brick(300, 450, 10, 10, "violet");
         new BadGuy(400, 400, 50, 50, "red", "right", true);
         new BadGuy(340, 60, 50, 50, "red", "right", true);
         new BadGuy(200, 150, 50, 50, "red", "left", true);
         new QuestionBox(300, 200, "!");
         new Coin(500, 400);
-        new Brick(650, 470, 300, 10, "blue");
+        new Brick(650, 470, 300, 10, "violet");
         new Bomb(200, 100, "right");
         new QuestionBox(400, 150);
         new QuestionBox(450, 150);
@@ -1134,18 +1330,18 @@ var Init = /** @class */ (function () {
         console.log("Entering World 0");
         GameState.currLevel = Init.World0;
         new Player(10, 10, sz);
-        new Brick(1, 480 - 10 - 1, 1000, 10, "blue", "brick", false);
+        new Brick(1, 480 - 10 - 1, 1000, 10, "violet", "brick", false);
         new QuestionBox(400, 300, "!");
         new QuestionBox(550, 300);
         new QuestionBox(600, 300);
         new QuestionBox(650, 300);
         new QuestionBox(700, 300);
         new QuestionBox(625, 130);
-        new Brick(1000, 400, 100, 10, "blue", "brick", false);
+        new Brick(1000, 400, 100, 10, "violet", "brick", false);
         new QuestionBox(1025, 180);
         new QuestionBox(1400, 170);
         new BadGuy(600, 400, 50, 50, "red", "left", false);
-        new Brick(1300, 325, 1000, 10, "blue", "brick", false);
+        new Brick(1300, 325, 1000, 10, "violet", "brick", false);
         new BadGuy(1800, 250, 50, 50, "red", "left", true);
         new BadGuy(1900, 250, 50, 50, "red", "left", true);
         new BadGuy(2000, 250, 50, 50, "red", "left", true);
@@ -1157,28 +1353,28 @@ var Init = /** @class */ (function () {
         new Coin(2600, 200);
         new Coin(2700, 250);
         new Coin(2800, 300);
-        new Brick(2800, 450, 100, 10, "blue", "brick", false);
-        new Brick(2890, 350, 10, 10, "blue", "brick", false);
-        new Brick(3000, 225, 100, 10, "blue", "brick", false);
+        new Brick(2800, 450, 100, 10, "violet", "brick", false);
+        new Brick(2890, 350, 10, 10, "violet", "brick", false);
+        new Brick(3000, 225, 100, 10, "violet", "brick", false);
         new Bomb(3000, 150, "right");
-        new Brick(3200, 100, 100, 10, "blue", "brick", false);
-        new Brick(3200, 150, 10, 300, "blue", "brick", false);
+        new Brick(3200, 100, 100, 10, "violet", "brick", false);
+        new Brick(3200, 150, 10, 300, "violet", "brick", false);
         new Coin(3210, 200);
-        new Brick(3600, 450, 300, 10, "blue", "brick", false);
+        new Brick(3600, 450, 300, 10, "violet", "brick", false);
         new Teleporter(3900, 300, Init.World1);
     };
     Init.World2 = function (sz) {
         console.log("Entering World 2");
         GameState.currLevel = Init.World2;
         new Player(20, 200, sz);
-        new Brick(1, 470, 1009, 10, "blue", "brick", false);
-        new Brick(1, 120, 10, 360, "blue", "brick", false);
+        new Brick(1, 470, 1009, 10, "violet", "brick", false);
+        new Brick(1, 120, 10, 360, "violet", "brick", false);
         new QuestionBox(400, 300);
         new QuestionBox(450, 300);
         new QuestionBox(500, 300);
         new QuestionBox(550, 300);
         new BadGuy(500, 220, 50, 50, "red", "left", true);
-        new Brick(1, 120, 1000, 10, "blue", "brick", false);
+        new Brick(1, 120, 1000, 10, "violet", "brick", false);
         new BadGuy(1, 60, 50, 50, "red", "right", false);
         new BadGuy(100, 60, 50, 50, "red", "right", false);
         new BadGuy(200, 60, 50, 50, "red", "right", false);
@@ -1190,31 +1386,31 @@ var Init = /** @class */ (function () {
         new BadGuy(800, 60, 50, 50, "red", "right", false);
         new BadGuy(900, 60, 50, 50, "red", "right", false);
         new BadGuy(1000, 60, 50, 50, "red", "right", false);
-        new Brick(1060, 120, 10, 30, "blue", "brick", false);
-        new Brick(1000, 460, 10, 20, "blue", "brick", false);
-        new Brick(1200, 300, 10, 100, "blue", "brick", false);
-        new Brick(1400, 450, 200, 10, "blue", "brick", false);
-        new Brick(1600, 300, 10, 150, "blue", "brick", false);
-        new Brick(1900, 300, 10, 150, "blue", "brick", false);
-        new Brick(2200, 300, 10, 150, "blue", "brick", false);
-        new Brick(2500, 300, 10, 150, "blue", "brick", false);
-        new Brick(3100, 470, 200, 10, "blue", "brick", false);
-        new Brick(3300, 370, 200, 10, "blue", "brick", false);
-        new Brick(3500, 270, 200, 10, "blue", "brick", false);
-        new Brick(3700, 170, 200, 10, "blue", "brick", false);
+        new Brick(1060, 120, 10, 30, "violet", "brick", false);
+        new Brick(1000, 460, 10, 20, "violet", "brick", false);
+        new Brick(1200, 300, 10, 100, "violet", "brick", false);
+        new Brick(1400, 450, 200, 10, "violet", "brick", false);
+        new Brick(1600, 300, 10, 150, "violet", "brick", false);
+        new Brick(1900, 300, 10, 150, "violet", "brick", false);
+        new Brick(2200, 300, 10, 150, "violet", "brick", false);
+        new Brick(2500, 300, 10, 150, "violet", "brick", false);
+        new Brick(3100, 470, 200, 10, "violet", "brick", false);
+        new Brick(3300, 370, 200, 10, "violet", "brick", false);
+        new Brick(3500, 270, 200, 10, "violet", "brick", false);
+        new Brick(3700, 170, 200, 10, "violet", "brick", false);
         new Teleporter(3900, 70, Init.World3);
     };
     Init.World3 = function (sz) {
         console.log("Entering World 3");
         GameState.currLevel = Init.World3;
         new Player(20, 200, sz);
-        new Brick(1, 469, 150, 10, "blue", "brick", false);
+        new Brick(1, 469, 150, 10, "violet", "brick", false);
         new Platform(100, 10, { x: 155, y: 469 }, { x: 520, y: 100 }, 3);
-        new Brick(630, 200, 150, 10, "blue", "brick", false);
-        new Brick(780, 210, 10, 200, "blue", "brick", false);
+        new Brick(630, 200, 150, 10, "violet", "brick", false);
+        new Brick(780, 210, 10, 200, "violet", "brick", false);
         new QuestionBox(700, 360, "!");
         new Platform(100, 10, { x: 630, y: 469 }, { x: 1200, y: 469 }, 3);
-        new Brick(900, 300, 400, 10, "blue", "brick", false);
+        new Brick(900, 300, 400, 10, "violet", "brick", false);
         new QuestionBox(1000, 100);
         new QuestionBox(1050, 100);
         new QuestionBox(1100, 100);
@@ -1222,15 +1418,15 @@ var Init = /** @class */ (function () {
         new Platform(150, 10, { x: 1400, y: 100 }, { x: 1400, y: 450 }, 3);
         new Platform(150, 10, { x: 1700, y: 450 }, { x: 1700, y: 100 }, 3);
         new Platform(100, 10, { x: 1900, y: 100 }, { x: 2000, y: 450 }, 3);
-        new Brick(2100, 150, 500, 10, "blue", "brick", false);
-        new Brick(2400, 80, 100, 10, "blueviolet", "brick", true);
-        new Brick(2500, 80, 300, 10, "blue", "brick", false);
-        new Brick(2700, 100, 10, 200, "blue", "brick", false);
-        new Brick(2400, 10, 10, 70, "blue", "brick", false);
+        new Brick(2100, 150, 500, 10, "violet", "brick", false);
+        new Brick(2400, 80, 100, 10, "skyblue", "brick", true);
+        new Brick(2500, 80, 300, 10, "violet", "brick", false);
+        new Brick(2700, 100, 10, 200, "violet", "brick", false);
+        new Brick(2400, 10, 10, 70, "violet", "brick", false);
         new Coin(2700, 25);
         new Platform(100, 10, { x: 2900, y: 200 }, { x: 3400, y: 300 }, 3);
         new Coin(3200, 100);
-        new Brick(3600, 350, 150, 10, "blue", "brick", false);
+        new Brick(3600, 350, 150, 10, "violet", "brick", false);
         new Teleporter(3700, 250, Init.World0);
     };
     Init.resetWorld = function () {

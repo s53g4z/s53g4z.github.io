@@ -1,5 +1,25 @@
+* {
+  user-select: none;
+}
+
 .brick {
   border-radius: 10px;
+}
+
+@keyframes animationSpin {
+  from {
+    transform: rotate(-0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+.buzzsaw {
+  animation-name: animationSpin;
+  animation-duration: 5s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 .deadbadguy {
@@ -22,25 +42,30 @@
   background-color: rgba(255, 127, 0, 0.5) !important;
 }
 
+.laser {
+  transform-origin: 0 0;
+  border-radius: 10px;
+}
+
 .player {
   background-color: limegreen;
 }
 
 @keyframes animationPlayerDying {
   from {
-    background-color: rgb(255, 127, 0);
+    background-color: rgba(255, 127, 0, 1);
   }
   to {
-    background-color: rgb(255, 255, 255);
+    background-color: rgba(255, 255, 255, 0);
   }
 }
 
 @keyframes animationPlayerTextDying {
   from {
-    color: rgb(0, 0, 0);
+    color: rgba(0, 0, 0, 1);
   }
   to {
-    color: rgb(255, 255, 255);
+    color: rgba(255, 255, 255, 0);
   }
 }
 
@@ -62,6 +87,10 @@
   margin-left: 3%;
   margin-right: 3%;
   margin-top: 15%;
+}
+
+.turret {
+  background-color: darkgray;
 }
 
 .coin {
