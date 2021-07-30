@@ -156,8 +156,8 @@ class Platform extends Brick {
 					continue;  // if can't collide with base, continue
 				const collisions: Array<WorldItem> =
 					Util.isCollidingWith(base);
-				for (const c of collisions)
-					if (c === w) {  // if colliding with
+				for (const c of collisions)  // \/ if colliding with \/
+					if (c === w && c.getClassName() !== "buzzsaw") {
 						stack.push(w);
 						if(!tallestInLayer ||  // if taller than tIL
 							w.height > tallestInLayer.height) {
@@ -603,9 +603,10 @@ class Bomb extends BadGuy {
 		
 		const colls: Array<WorldItem> = Util.isCollidingWith(this);
 		for (const c of colls) {
-			if (c.getClassName() === "coin" || c.getClassName() === "qbox" ||
+			if (c.getClassName() === "coin" || c.getClassName() === "turret" ||
 				c.getClassName() === "badguy" || c.getClassName() === "bomb" ||
-				c.getClassName() === "player")
+				c.getClassName() === "player" || c.getClassName() === "qbox" ||
+				c.getClassName() === "brick" && (c as Brick).destructible)
 				c.die();
 		}
 	}
@@ -907,6 +908,8 @@ class GameState {
 			let newdiv: HTMLDivElement = document.createElement("div");
 			newdiv.id = id;
 			newdiv.style.margin = "0.5vw";
+			newdiv.style.zIndex = "5";
+			newdiv.style.position = "relative";
 			document.body.appendChild(newdiv);
 			div = newdiv;
 		}
@@ -1136,7 +1139,8 @@ class Util {
 				let shouldBreak: boolean = false;
 				if (p !== w && p.bottomI() + 1 == w.topI() &&
 					w.getClassName() !== "teleporter" &&
-					w.getClassName() !== "deadbadguy") {
+					w.getClassName() !== "deadbadguy" &&
+					w.getClassName() !== "buzzsaw") {
 					const collisions = Util.isCollidingWith(p);
 					for (const c of collisions)
 						if (c === w) {
@@ -1434,7 +1438,119 @@ class Init {
 		new Platform(100, 10, {x: 2900, y: 200}, {x: 3400, y: 300}, 3);
 		new Coin(3200, 100);
 		new Brick(3600, 350, 150, 10, "violet", "brick", false);
-		new Teleporter(3700, 250, Init.World0);
+		new Teleporter(3700, 250, Init.World4);
+	}
+	
+	static World4(sz: PlayerSize) {
+		console.log("Entering World 4");
+		GameState.currLevel = Init.World4;
+		new Player(10, 410, sz);
+		new Brick(1, 350, 150, 10, "violet", "brick", false);
+		new Brick(1, 470, 300, 10, "violet", "brick", false);
+		new BadGuy(50, 240, 50, 50, "red", "right", true);
+		new Turret(140, 80);
+		new Brick(370, 300, 400, 10, "violet", "brick", false);
+		new Coin(305, 240);
+		new Coin(305, 190);
+		new Coin(305, 140);
+		new Coin(305, 90);
+		new Coin(355, 240);
+		new Coin(355, 190);
+		new Coin(355, 140);
+		new Coin(355, 90);
+		new Coin(405, 240);
+		new Coin(405, 190);
+		new Coin(405, 140);
+		new Coin(405, 90);
+		new Coin(455, 90);
+		new Coin(455, 140);
+		new Coin(455, 190);
+		new Coin(455, 240);
+		new QuestionBox(600, 100, "!");
+		new Brick(750, 140, 300, 10, "skyblue", "brick", true);
+		new Bomb(1000, 80, "left");
+		new BadGuy(900, 80, 50, 50, "red", "left", true);
+		new BuzzSaw(900, 150, 200, 200);
+		new BuzzSaw(1100, 5, 300, 300);
+		new Platform(100, 10, { x: 800, y: 460 }, { x: 1300, y: 420 }, 3);
+		new Platform(100, 10, { x: 1450, y: 460 }, { x: 1450, y: 150 }, 3);
+		new Brick(1700, 100, 200, 10, "violet", "brick", false);
+		new Brick(1700, 250, 150, 10, "violet", "brick", false);
+		new Brick(2000, 190, 200, 10, "violet", "brick", false);
+		new Coin(1945, 110);
+		new Coin(1850, 40);
+		new Coin(1800, 40);
+		new Coin(1750, 40);
+		new Turret(3000, 5);
+		new Brick(2000, 470, 400, 10, "violet", "brick", false);
+		new QuestionBox(2050, 340, "!");
+		new Coin(2200, 250);
+		new Coin(2200, 300);
+		new Coin(2200, 350);
+		new Coin(2200, 400);
+		new Brick(2400, 470, 1600, 10, "violet", "brick", false);
+		new Brick(2600, 300, 150, 10, "skyblue", "brick", true);
+		new Brick(2750, 300, 150, 10, "skyblue", "brick", true);
+		new Brick(2900, 300, 150, 10, "skyblue", "brick", true);
+		new Brick(3050, 300, 150, 10, "skyblue", "brick", true);
+		new Brick(3200, 300, 150, 10, "skyblue", "brick", true);
+		new Brick(3350, 300, 150, 10, "skyblue", "brick", true);
+		new Brick(3500, 300, 150, 10, "skyblue", "brick", true);
+		
+		new Brick(3300, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3310, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3320, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3330, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3340, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3350, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3360, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3370, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3380, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3390, 50, 10, 250, "skyblue", "brick", true);
+		
+		new Brick(3400, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3410, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3420, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3430, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3440, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3450, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3460, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3470, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3480, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3490, 50, 10, 250, "skyblue", "brick", true);
+
+		new Brick(3500, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3510, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3520, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3530, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3540, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3550, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3560, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3570, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3580, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3590, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3600, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3610, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3620, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3630, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3640, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3650, 50, 10, 250, "skyblue", "brick", true);
+		new Brick(3650, 300, 150, 10, "skyblue", "brick", true);
+		new Brick(3800, 300, 150, 10, "skyblue", "brick", true);
+		new Bomb(3900, 240, "right");
+		new Brick(3850, 200, 150, 10, "skyblue", "brick", true);
+		new Brick(4300, 130, 150, 10, "skyblue", "brick", true);
+		new Bomb(4400, 70, "right");
+		new Brick(3900, 100, 150, 10, "skyblue", "brick", true);
+		new Brick(4200, 150, 10, 10, "skyblue", "brick", true);
+		new Bomb(4200, 90, "right");
+		new Brick(4600, 460, 500, 10, "violet", "brick", false);
+		new QuestionBox(4700, 300, "!");
+		new QuestionBox(4750, 300);
+		new QuestionBox(4800, 300);
+		new QuestionBox(4850, 300);
+		new BuzzSaw(4650, 10, 225, 225);
+		new Teleporter(5000, 400, Init.World0);
 	}
 	
 	static resetWorld(): void {
