@@ -10,6 +10,8 @@ type Point = {
 	y: number
 };
 
+const DEBUG_MODE: boolean = false;
+
 class PreLoadImg {
 	static imgElems = new Array<HTMLImageElement>();
 	constructor() {
@@ -56,24 +58,86 @@ class WorldItem {
 		this.div.className = className;
 		document.body.appendChild(this.div);
 		this.x = x;
-		this.y = y;
+		this.setY(y);
 		this.width = width;
 		this.height = height;
-		this.color = color;
+		this.setColor(color);
 		this.accel = 0;
 		GameState.appendToWS(this);
 	}
+	updateDivvyMembership(oldX: number, oldWidth: number): void {
+		const origLo = Math.trunc(oldX / 200);
+		const origHi = Math.trunc((oldX + oldWidth) / 200);
+		const updatedLo = Math.trunc(this.leftI() / 200);
+		const updatedHi = Math.trunc(this.rightI() / 200);
+		
+		//if (true || origLo > updatedHi || origHi < updatedLo) {  // no overlap
+		GameState.rmFromDivvy(this, origLo, origHi);
+		GameState.addToDivvy(this, updatedLo, updatedHi);
+		//} else {
+			//GameState.addToDivvy(this, origHi+1, updatedHi);  // bad logic
+			//GameState.rmFromDivvy(this, origLo, updatedLo-1);  // bad logic
+		//}
+	}
+	setX(x: number): void {  // x must be an integer!
+		if (DEBUG_MODE && Math.round(x) !== x)
+			throw new Error("setx invalid input");
+		const oldX: number = this.x;  // bootstrap, so don't use this.getX()
+		this.x = x;
+		
+		if (oldX !== x)
+			this.updateDivvyMembership(oldX, this.getWidth());
+	}
+	setY(y: number): void {  // y must be an integer!
+		if (DEBUG_MODE && Math.round(y) !== y)
+			throw new Error("sety invalid input: " + y);
+		this.y = y;
+	}
+	getX(): number {
+		if (DEBUG_MODE && Math.round(this.x) !== this.x)
+			throw new Error("getx invalid data");
+		return this.x;
+	}
+	getY(): number {
+		if (DEBUG_MODE && Math.round(this.y) !== this.y)
+			throw new Error("gety invalid data");
+		return this.y;
+	}
+	getWidth(): number {
+		return this.width;
+	}
+	setWidth(width: number): void {
+		if (DEBUG_MODE && Math.round(width) !== width)
+			throw new Error("setwidth invalid input");
+		const oldWidth: number = this.getWidth();
+		this.width = width;
+		
+		if (oldWidth !== width)
+			this.updateDivvyMembership(this.getX(), oldWidth);
+	}
+	getHeight(): number {
+		return this.height;
+	}
+	setHeight(height: number): void {
+		if (DEBUG_MODE && Math.round(height) !== height)
+			throw new Error("setheight invalid input");
+		//const oldHeight = this.getHeight();
+		this.height = height;
+		
+		//if (oldHeight !== height)
+		//	this.updateDivvyMembership(this.getX(), this.getWidth(), oldHeight);
+	}
 	topI(): number {
-		return Math.round(this.y);
+		return this.y;
 	}
 	bottomI(): number {
-		return Math.round(this.y + this.height);
+		return this.y + this.height;
 	}
 	leftI(): number {
-		return Math.round(this.x);
+		return this.x;
 	}
 	rightI(): number {
-		return Math.round(this.x + this.width);
+		return this.x + this.width;
 	}
 	die(): void {
 		GameState.removeFromWS(this);
@@ -92,8 +156,10 @@ class WorldItem {
 		this.div.style.backgroundColor = newColor;
 	}
 	scroll(amount: number): void {
-		this.x += amount;
-		this.div.style.left = this.x + "px";
+		this.setX(this.getX() + amount);
+		if (Util.isOutsideFrame(this))
+			return;  // skip drawing if outside the frame
+		this.div.style.left = this.getX() + "px";
 	}
 	stepState(): void {
 		throw new Error("child of WorldItem has undefined stepState()");
@@ -111,16 +177,11 @@ class Brick extends WorldItem {
 	}
 	
 	stepState(): void {
-		if (!this.destructible)
-			return;
-		const player: Player = GameState.getPlayer();
-		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
-		for (const c of collisions) {
-			if (c !== player || c.topI() - 1 !== this.bottomI())
-				continue;
-			// is headbutt by player! destroy self
-			player.accel = -player.accel;
-			return this.die();
+		if (this.destructible &&
+			GameState.getPlayer().topI() - 1 === this.bottomI() &&
+			Util.areColliding(GameState.getPlayer(), this)) {
+			GameState.getPlayer().accel = -GameState.getPlayer().accel;
+			this.die();
 		}
 	}
 }
@@ -139,8 +200,9 @@ class Platform extends Brick {
 			throw new Error("invalid start/end points for Platform");
 	}
 	scroll(amount: number): void {
-		this.x += amount;
-		this.div.style.left = this.x + "px";
+		this.setX(this.getX() + amount);
+		if (!Util.isOutsideFrame(this))
+			this.div.style.left = this.x + "px";
 		this.start.x += amount;
 		this.end.x += amount;
 	}
@@ -191,11 +253,11 @@ class Platform extends Brick {
 			// snap to start or end
 			if (Math.abs(this.x - this.start.x) < 1 &&
 				Math.abs(this.y - this.start.y) < 1) {
-				this.x = this.start.x;
-				this.y = this.start.y;
+				this.setX(this.start.x);
+				this.setY(this.start.y);
 			} else {
-				this.x = this.end.x;
-				this.y = this.end.y;
+				this.setX(this.end.x);
+				this.setY(this.end.y);
 			}
 			distBetweenEndpoints = 0;
 		} else {
@@ -227,22 +289,36 @@ class Platform extends Brick {
 				highestInStack = stack[stack.length - 1];
 			const origAccelHIS = highestInStack.accel;
 			highestInStack.accel = deltaY;
-			let canMoveY = Util.canMoveTo(highestInStack, "up");
-			let canMoveX = Util.canMoveTo(this,
-				this.speed > 0 ? "right" : "left", Math.abs(deltaX));
+			// warn: the following code introduces a performance regression
+			const origHISPos: Point = {x: highestInStack.x,
+				y: highestInStack.y};
+			Util.moveMe(highestInStack, 0);
+			let canMoveY = highestInStack.y;
+			highestInStack.y = origHISPos.y;
+			this.accel = 0;
+			const origMePos: Point = {x: this.x, y: this.y};
+			Util.moveMe(this, deltaX);
+			let canMoveX = this.x;
+			this.setX(origMePos.x);
+			//let canMoveY = Util.canMoveTo(highestInStack, "up");
+			//let canMoveX = Util.canMoveTo(this,
+				//this.speed > 0 ? "right" : "left", Math.abs(deltaX));
 			highestInStack.accel = origAccelHIS;
 			deltaY = canMoveY - highestInStack.topI();
 			deltaX = Math.round(canMoveX - this.x);
 			for (let i = 1; i < stack.length; i++)
 				if (stack[i].getClassName() === "platform") {
 					deltaY = 0;
+					break;
 				}
 			
 			for (const w of stack) {
-				w.x += deltaX;
-				w.y += deltaY;
-				w.div.style.left = w.x + "px";
-				w.div.style.top = w.y + "px";
+				w.setX(w.getX() + deltaX);
+				w.setY(w.getY() + deltaY);
+				if (!Util.isOutsideFrame(this)) {
+					w.div.style.left = w.x + "px";
+					w.div.style.top = w.y + "px";
+				}
 			}
 			this.speed = origSpeed;
 		}
@@ -258,19 +334,14 @@ class Platform extends Brick {
 class Coin extends Brick {
 	constructor(x: number, y: number) {
 		super(x, y, 50, 50, "yellow", "coin");
-	//	this.div.style.borderRadius = 25 + "px";
 		this.div.innerText = "$";
 	}
 	
 	stepState(): void {
-		const p: Player = GameState.getPlayer();
-		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
-		for (const c of collisions)
-			if (p === c) {
-				GameState.setNCollectedCoins(
-					GameState.getNCollectedCoins() + 1);
-				return this.die();
-			}
+		if (Util.areColliding(GameState.getPlayer(), this)) {
+			GameState.setNCollectedCoins(GameState.getNCollectedCoins() + 1);
+			this.die();
+		}
 	}
 }
 
@@ -282,17 +353,11 @@ class PowerUp extends Brick {
 		const imgHandle = PreLoadImg.getImg(0);
 		this.div.appendChild(imgHandle);
 	}
-	makeBigPlayer(): void {
-		GameState.getPlayer().grow();
-	}
 	stepState(): void {
-		const p: Player = GameState.getPlayer();
-		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
-		for (const c of collisions)
-			if (p === c) {
-				this.makeBigPlayer();
-				return this.die();
-			}
+		if (Util.areColliding(GameState.getPlayer(), this)) {
+			GameState.getPlayer().grow();
+			this.die();
+		}
 	}
 }
 
@@ -317,17 +382,12 @@ class QuestionBox extends WorldItem {
 		if (!this.active)
 			return;
 		const p: Player = GameState.getPlayer();
-		if (p.topI() - 1 === this.bottomI()) {
-			const colls: Array<WorldItem> = Util.isCollidingWith(this);
-			for (const col of colls)
-				if (col === p) {
-					if (this.contents === "coin")
-						new Coin(this.x, this.y - 50);
-					else if (this.contents === "powerup")
-						new PowerUp(this.x, this.y - 50);
-					this.deactivate();
-					break;
-				}
+		if (p.topI() - 1 === this.bottomI() && Util.areColliding(p, this)) {
+			if (this.contents === "coin")
+				new Coin(this.x, this.y - 50);
+			else if (this.contents === "powerup")
+				new PowerUp(this.x, this.y - 50);
+			this.deactivate();
 		}
 	}
 	die(): void {  // blown up by a bomb?
@@ -376,9 +436,12 @@ class Turret extends AliveWorldItem {
 		} else
 			this.framesPeaceful = 0;
 		
+		if (Math.abs(this.x - GameState.getPlayer().x) > 1000)
+			return;  // save ammo (jk)
+		
 		const theta = this.calculateTheta();
-		const laserHandle = new Laser(this.x + this.width / 2,
-			this.y + this.height / 2, 25, theta);
+		const laserHandle = new Laser(this.getX() + this.getWidth() / 2,
+			this.getY() + this.getHeight() / 2, 25, theta);
 		laserHandle.div.style.opacity = "0";
 		this.div.style.transform = "rotate(" + (-theta + 90) + "deg)";
 	}
@@ -403,11 +466,14 @@ class Laser extends AliveWorldItem {
 			* 10) / 10;
 		this.accel = wantMoveY;
 		// buggy b/c lasers can rotate around
-		this.x = Util.canMoveTo(this, wantMoveX > 0 ? "right" : "left",
-			Math.abs(wantMoveX));
-		this.y = Util.canMoveTo(this, "down");
+		Util.moveMe(this, wantMoveX);
+		//this.setX(Util.canMoveTo(this, wantMoveX > 0 ? "right" : "left",
+			//Math.abs(wantMoveX)));
+		//this.setY(Util.canMoveTo(this, "down"));
 	}
 	decorateSelf(): void {
+		if (Util.isOutsideFrame(this))
+			return;
 		this.div.style.left = this.x + "px";
 		this.div.style.top = this.y + "px";
 		this.div.style.opacity = "1";
@@ -482,30 +548,19 @@ class BadGuy extends AliveWorldItem {
 	
 	steppedOn(): boolean {
 		const p: Player = GameState.getPlayer();
-		if (p.bottomI() + 1 == this.topI()) {
-			const collisions: Array<WorldItem> = Util.isCollidingWith(this);
-			for (const col of collisions)
-				if (col == p)
-					return true;
-		}
-		return false;
+		return p.bottomI() + 1 === this.topI() && Util.areColliding(p, this);
 	}
 	
 	touchingPlayer(): boolean {
-		const p: Player = GameState.getPlayer();
-		const collisions: Array<WorldItem> = Util.isCollidingWith(this);
-		for (const c of collisions)
-			if (p === c)
-				return true;
-		return false;
+		return Util.areColliding(GameState.getPlayer(), this);
 	}
 	
 	die(): void {
 		//GameState.getPlayer().accel = 0;
 		this.div.innerText = "x.x";
 		this.setClassName("deadbadguy");
-		this.height /= 2;
-		this.y += this.height;
+		this.setHeight(this.getHeight() / 2);
+		this.setY(this.getY() + this.height);
 		this.div.style.top = this.y + "px";
 		this.div.style.height = this.height + "px";
 		if (this.dir === "right")
@@ -516,24 +571,6 @@ class BadGuy extends AliveWorldItem {
 			GameState.removeFromWS(this)
 		}, 2000);
 		GameState.recordTimeout(timeout);
-	}
-	
-	// helper for stepState()
-	horizCanMoveTo(): void {
-		const hMove: number = Util.canMoveTo(this, this.dir,
-			this.movementSpeed);
-		if (hMove === this.x)
-			this.maybeTurnAround();
-		
-		const oldX: number = this.x;
-		const oldOnSurface: boolean = Util.onSolidSurface(this);
-		this.x = hMove + (this.dir === "left" ? - (this.width / 2) :
-			(this.width / 2));  // why???
-		if (this.patrol && oldOnSurface && !Util.onSolidSurface(this)) {
-			this.x = oldX;
-			this.maybeTurnAround();
-		} else 
-			this.x = hMove;
 	}
 	// helper for stepState()
 	maybeTurnAround(): void {
@@ -546,6 +583,8 @@ class BadGuy extends AliveWorldItem {
 			this.dir = "right";
 	}
 	decorateDOMSelf(): void {
+		if (Util.isOutsideFrame(this))
+			return;
 		this.div.innerText = "@_@";
 		this.div.style.textAlign = "left";
 		if (this.dir === "right")
@@ -557,20 +596,34 @@ class BadGuy extends AliveWorldItem {
 		if (!this.alive)
 			return;
 		this.framesSkippedTurning++;
-
-
+		
 		if (this.steppedOn() || this.bottomI() == Util.bottomEdge - 1)
 			this.die();
 		else if (this.touchingPlayer())
 			GameState.getPlayer().die();
 		
 		if (this.alive) {
-			this.horizCanMoveTo();
 			if (Util.onSolidSurface(this))
 				this.accel = 0;
 			else
 				this.accel += 1.0;
-			this.y = Util.canMoveTo(this, "down");
+			//this.setY(Util.canMoveTo(this, "down"));
+			const origMeLocation: Point = {x: this.x, y: this.y};
+			const origOnSurface: boolean = Util.onSolidSurface(this);
+			Util.moveMe(this, this.dir === "left" ? -this.movementSpeed :
+				this.movementSpeed);
+			if (this.x === origMeLocation.x)
+				this.maybeTurnAround();
+			if (this.patrol) {
+				const nowMeLocation: Point = {x: this.x, y: this.y};
+				this.setX(Math.round(this.getX() + (this.dir === "left" ?
+					-(this.width / 2) : this.width / 2)));
+				if (origOnSurface && !Util.onSolidSurface(this)) {
+					this.setX(origMeLocation.x);
+					this.maybeTurnAround();
+				} else
+					this.setX(nowMeLocation.x);
+			}
 		}
 
 		this.decorateDOMSelf();
@@ -585,20 +638,22 @@ class Bomb extends BadGuy {
 	}
 	
 	explode(): void {
-		this.x -= 50;
-		this.y -= 50;
-		this.width *= 3;
-		this.height *= 3;
+		this.setWidth(this.getWidth() * 3);
+		this.setHeight(this.getHeight() * 3);
+		this.setX(this.getX() - 50);
+		this.setY(this.getY() - 50);
 		
 		this.stepState = () => {
 			if (this.touchingPlayer())
 				GameState.getPlayer().die();
 		};
 
-		this.div.style.width = this.width + "px";
-		this.div.style.height = this.height + "px";
-		this.div.style.left = this.x + "px";
-		this.div.style.top = this.y + "px";
+		if (!Util.isOutsideFrame(this)) {
+			this.div.style.width = this.width + "px";
+			this.div.style.height = this.height + "px";
+			this.div.style.left = this.x + "px";
+			this.div.style.top = this.y + "px";
+		}
 		this.div.className = "explodingbomb";
 		
 		const colls: Array<WorldItem> = Util.isCollidingWith(this);
@@ -620,6 +675,8 @@ class Bomb extends BadGuy {
 		this.div.className = "tickingbomb";
 		
 		const flickerHandle = window.setInterval(() => {
+			if (Util.isOutsideFrame(this))
+				return;
 			if (this.div.style.backgroundColor != "hotpink")
 				this.div.style.backgroundColor = "hotpink";
 			else
@@ -641,6 +698,8 @@ class Bomb extends BadGuy {
 	}
 	
 	decorateDOMSelf(): void {
+		if (Util.isOutsideFrame(this))
+			return;
 		this.div.innerText = "-.-";
 		if (this.isTicking)
 			this.div.innerText = "O.O";
@@ -711,7 +770,7 @@ class Player extends AliveWorldItem {
 		this.isJumping = true;
 		this.alreadyJumped = true;
 		this.accel = -13;
-		this.y = Util.canMoveTo(this, "up");
+		//this.setY(Util.canMoveTo(this, "up"));
 	}
 	fall(): void {  // helper fn for stepState()
 		if (!Util.isWDown)
@@ -721,10 +780,10 @@ class Player extends AliveWorldItem {
 			this.accel = 0;
 		else {  // contine falling
 			this.accel += 0.5;
-			const canMoveToY = Util.canMoveTo(this, "down");
-			if (this.y === canMoveToY)
-				this.accel = -this.accel;  // bonk
-			this.y = canMoveToY;
+			//const canMoveToY = Util.canMoveTo(this, "down");
+			//if (this.y === canMoveToY)
+			//	this.accel = -this.accel;  // bonk
+			//this.setY(canMoveToY);
 		}
 	}
 	die(): void {
@@ -761,8 +820,8 @@ class Player extends AliveWorldItem {
 		GameState.recordTimeout(resetWorldTimeoutHandle);
 	}
 	maybeScroll(): void {
-		const origX = this.x;
-		const scrollLine = (Util.rightEdge - Util.leftEdge) / 3;
+		const origX = this.getX();
+		const scrollLine = Math.round((Util.rightEdge - Util.leftEdge) / 3);
 		const scrollLine2 = 10;
 		if (origX > scrollLine)
 			for (const w of GameState.ws)
@@ -801,19 +860,20 @@ class Player extends AliveWorldItem {
 		if (this.invincible)
 			this.flicker();
 		
-		if (this.bottomI() === Util.bottomEdge - 1) {
+		if (this.bottomI() >= Util.bottomEdge - 1) {
 			this.die();
 			return;
 		}
 		
 		let owo: HTMLDivElement = this.uwu();
 		
+		let speed = 0;
 		if (Util.isDDown) {
-			this.x = Util.canMoveTo(this, "right", 9);
+			speed = 9;
 			owo.style.textAlign = "end";
 		}
 		if (Util.isADown) {
-			this.x = Util.canMoveTo(this, "left", 9);
+			speed = -9;
 			owo.style.textAlign = "left";
 		}
 		if (Util.isWDown && (this.wasOnBadGuy ||
@@ -821,12 +881,18 @@ class Player extends AliveWorldItem {
 			this.jump();
 		else
 			this.fall();
+		
+		const origMePos: Point = {x: this.x, y: this.y};
+		Util.moveMe(this, speed);
+		if (origMePos.y === this.getY())
+			this.accel = -this.accel;
+		
 		if (this.onBadGuy())
 			this.wasOnBadGuy = true;
 		else
 			this.wasOnBadGuy = false;
-		this.div.style.left = this.x + "px";
-		this.div.style.top = this.y + "px";
+		this.div.style.left = this.getX() + "px";
+		this.div.style.top = this.getY() + "px";
 		
 		this.maybeScroll();
 	}
@@ -841,14 +907,12 @@ class Teleporter extends WorldItem {
 	}
 	
 	stepState() {
-		const collisions = Util.isCollidingWith(this);
-		for (const c of collisions)
-			if (c === GameState.getPlayer()) {
-				const szPlayer = GameState.getPlayer().sz;
-				GameState.clearTimeouts();
-				GameState.clearElemsOfWS();
-				this.nextLevel(szPlayer);
-			}
+		if (Util.areColliding(GameState.getPlayer(), this)) {
+			const szPlayer = GameState.getPlayer().sz;
+			GameState.clearTimeouts();
+			GameState.clearElemsOfWS();
+			this.nextLevel(szPlayer);
+		}
 	}
 }
 
@@ -864,13 +928,41 @@ class GameState {
 	static timeOuts = new Array();
 	static before = 0;
 	static now = 1;
+	static divvy = new Map<number, Set<WorldItem>>();
 	
+	// Add w to the sets at map indices [lo, hi]
+	static addToDivvy(w: WorldItem, lo: number, hi: number): void {
+		for (let i = lo; i <= hi; i++) {
+			if (!this.divvy.has(i))
+				this.divvy.set(i, new Set<WorldItem>());
+			if (DEBUG_MODE && this.divvy.get(i).has(w))
+				throw new Error("programmer error: addtodivvy adding a dup");
+			this.divvy.get(i).add(w);  // on set representing index i, add w.
+		}
+	}
+	// Remove w from the sets at map indices [lo, hi]
+	static rmFromDivvy(w: WorldItem, lo: number, hi: number): void {
+		for (let i = lo; i <= hi; i++)
+			if (!this.divvy.has(i))
+				throw new Error("programmer error: divvy lacks a set " +
+					"containing the worlditem to be deleted");
+			else  // from set representing index i, rm w.
+				if (!(this.divvy.get(i).delete(w)))
+					throw new Error("programmer error: bad set reference del");
+	}
 	static appendToWS(w: WorldItem): void {
 		this.ws.push(w);
+		const loIndex = Math.trunc(w.leftI() / 200);
+		const hiIndex = Math.trunc(w.rightI() / 200);
+		this.addToDivvy(w, loIndex, hiIndex);
 	}
+	// destroy one WorldItem
 	static removeFromWS(trash: WorldItem): void {
 		for (let i = 0; i < this.ws.length; i++)
 			if (this.ws[i] === trash) {
+				const loIndex = Math.trunc(trash.leftI() / 200);
+				const hiIndex = Math.trunc(trash.rightI() / 200);
+				this.rmFromDivvy(trash, loIndex, hiIndex);
 				this.ws.splice(i--, 1);  // clean the .ws array
 				break;
 			}
@@ -924,12 +1016,12 @@ class GameState {
 		return this.getDOMElemById("GUInlives");
 	}
 	static getNLivesLeft(): number {
-		if (this.nLivesLeft < 0)
+		if (DEBUG_MODE && this.nLivesLeft < 0)
 			throw new Error("nLivesLeft is less than zero");
 		return this.nLivesLeft;
 	}
 	static setNLivesLeft(n: number): void {
-		if (n < 0)
+		if (DEBUG_MODE && n < 0)
 			throw new Error("nLivesLeft is less than zero");
 		this.nLivesLeft = n;
 	}
@@ -960,81 +1052,32 @@ class UtilHelpers {
 	constructor() {
 		throw new Error("class UtilHelpers cannot be constructed!");
 	}
-	// might need a rewrite
-	static canMoveStepperX(p: WorldItem, maxStep: number): number {
-		let canMoveToX: number = p.x;
-		for (let i = 0; i < Math.abs(maxStep); i++) {
-			let j: number = maxStep > 0 ? i : -i;
-			p.x += j;
-			const collisions: Array<WorldItem> = Util.isCollidingWith(p);
-			let shouldBreak: boolean = false;
-			for (const c of collisions)
-				if (c.getClassName() !== "coin" &&
-					c.getClassName() !== "teleporter" &&
-					c.getClassName() !== "deadbadguy" &&
-					c.getClassName() !== "buzzsaw" &&
-					c.getClassName() !== "laser" &&
-					!(p.getClassName() === "turret" && c.getClassName() === "laser") &&  // not case of laser overlapping a turret
-					(maxStep > 0 && p.rightI() + 1 === c.leftI() ||
-					maxStep < 0 && p.leftI() - 1 === c.rightI())) {
-					shouldBreak = true;  // found a collision, stop
-					break;
-				}
-			p.x -= j;
-			if (shouldBreak)
-				break;
-			canMoveToX += maxStep > 0 ? 1 : -1;
-		}
-		return canMoveToX;
-	}
-	// might also need a rewrite. really similar to canMoveStepperX().
-	static canMoveStepperY(p: WorldItem) {
-		let canMoveToY: number = p.y;
-		for (let i = 0; i < Math.abs(p.accel); i++) {
-			const savedpy = p.y;
-			p.y += p.accel > 0 ? i : -i;
-			const collisions: Array<WorldItem> = Util.isCollidingWith(p);
-			let shouldBreak: boolean = false;
-			for (const c of collisions)
-				if (c.getClassName() !== "coin" &&
-					c.getClassName() !== "teleporter" &&
-					c.getClassName() !== "deadbadguy" &&
-					c.getClassName() !== "buzzsaw" &&
-					c.getClassName() !== "laser" &&
-					!(p.getClassName() === "turret" && c.getClassName() === "laser") &&  // not case of laser overlapping a turret
-					(p.accel < 0 && p.topI() - 1 === c.bottomI() ||
-					p.accel > 0 && p.bottomI() + 1 === c.topI())) {
-					shouldBreak = true;
-					break;
-				}
-			p.y = savedpy;
-			if (shouldBreak)
-				break;
-			canMoveToY += p.accel > 0 ? 1 : -1;
-		}
-		if (canMoveToY < Util.topEdge)
-			canMoveToY = Util.topEdge + 1;
-		if (canMoveToY + p.height > Util.bottomEdge)
-			canMoveToY = Util.bottomEdge - p.height - 1;
-		return canMoveToY;
+	// helper for Util.moveMe()
+	static shouldIgnoreCollision(c: WorldItem) {
+		return false ||
+			c.getClassName() === "coin" ||
+			c.getClassName() === "teleporter" ||
+			c.getClassName() === "deadbadguy" ||
+			c.getClassName() === "buzzsaw" ||
+			c.getClassName() === "laser";
 	}
 	static isCollidingHoriz(v: WorldItem, w: WorldItem): boolean {
 		return true &&
 			(
 			Util.isBetween(w.topI(), v.topI(), v.bottomI()) ||
 			Util.isBetween(w.bottomI(), v.topI(), v.bottomI()) ||
-			(v.topI() >= w.topI() && v.bottomI() <= w.bottomI()) ||
-			(v.topI() <= w.topI() && v.bottomI() >= w.bottomI())
-			);
+			(v.topI() >= w.topI() && v.bottomI() <= w.bottomI())); /*||
+			(v.topI() <= w.topI() && v.bottomI() >= w.bottomI()
+			);*/
 	}
 	static isCollidingVert(v: WorldItem, w: WorldItem): boolean {
 		return true &&
 			(
 			Util.isBetween(w.leftI(), v.leftI(), v.rightI()) ||
 			Util.isBetween(w.rightI(), v.leftI(), v.rightI()) ||
-			(w.leftI() <= v.leftI() && w.rightI() >= v.rightI()) ||
+			(w.leftI() <= v.leftI() && w.rightI() >= v.rightI())); /*||
 			(v.leftI() <= w.leftI() && v.rightI() >= w.rightI())
-			);
+			);*/
 	}
 	static actualRegisterKeys(): void {
 		window.onkeydown = function(e) {
@@ -1114,46 +1157,83 @@ class Util {
 		PreLoadImg.preload("images/arrowup.svg");
 		PreLoadImg.preload("images/buzzsaw.svg");
 	}
+	static divvyDebugger(): void {
+		if (!DEBUG_MODE)
+			throw new Error("attempting to debug divvy outside of debug mode");
+		for (const [n, set] of GameState.divvy) {
+			console.log("<<<<< " + n + " >>>>>");
+			for (const elem of set)
+				console.log(elem);
+			console.log("=====");
+		}
+	}
 	// client-callable fn
-	static canMoveTo(p: WorldItem, direction: Direction,
-		speed: number = 1): number {
-		if (direction === "left") {
-			return UtilHelpers.canMoveStepperX(p, -speed);
+	static isOutsideFrame(w: WorldItem) {
+		return w.rightI() < Util.leftEdge - 100 ||
+			w.leftI() > Util.rightEdge + 100;
+	}
+	// client-callable fn
+	// todo: clean up moveMe() implementation
+	static moveMe(w: WorldItem, wantMoveX: number): void {
+		const origWLocation: Point = {x: w.x, y: w.y};
+		let xMoveOkay = true;
+		let yMoveOkay = true;
+		const nIterations = Math.abs(Math.max(Math.abs(w.accel),
+			Math.abs(wantMoveX)));
+		for (let i = 0; i <= nIterations; i++) {
+			if (!xMoveOkay && !yMoveOkay)
+				break;  // both are false, so nothing else to do
+			if (Math.abs(w.x - origWLocation.x) >= Math.abs(wantMoveX))
+				xMoveOkay = false;  // already moved maximum amount
+			if (Math.abs(w.y - origWLocation.y) >= Math.abs(w.accel))
+				yMoveOkay = false;  // already moved maximum amount
+			const collisions: Array<WorldItem> = Util.isCollidingWith(w);
+			for (const c of collisions) {
+				if (!xMoveOkay && !yMoveOkay)
+					break;  // both turned false, so nothing to do
+				
+				// list of collisions to ignore
+				if (UtilHelpers.shouldIgnoreCollision(c) ||
+					(w.getClassName() === "turret" && c.getClassName() === "laser"))
+					continue;
+				
+				// if x now colliding
+				if (xMoveOkay && (wantMoveX > 0 && w.rightI() + 1 === c.leftI() ||
+					wantMoveX < 0 && w.leftI() - 1 === c.rightI())) {
+					xMoveOkay = false;  // don't change x anymore
+				}
+				// if y now colliding
+				if (yMoveOkay && (w.accel > 0 && w.bottomI() + 1 === c.topI() ||
+					w.accel < 0 && w.topI() - 1 === c.bottomI())) {
+					yMoveOkay = false;  // don't change y anymore
+				}
+			}
+			if (xMoveOkay) {
+				w.setX(w.getX() + (wantMoveX > 0 ? 1 : -1));
+			}
+			if (yMoveOkay) {
+				w.setY(w.getY() + (w.accel > 0 ? 1 : -1));
+			}
 		}
-		if (direction === "right") {
-			return UtilHelpers.canMoveStepperX(p, speed);
-		}
-		if (direction === "up" || direction === "down") {
-			return UtilHelpers.canMoveStepperY(p);
-		}
-		return 0;
+		if (w.getY() < Util.topEdge)
+			w.setY(Util.topEdge + 1);
+		if (w.getY() + w.getHeight() > Util.bottomEdge)
+			w.setY(Util.bottomEdge - w.getHeight() - 1);
 	}
 	// client-callable fn
 	static onSolidSurface(p: AliveWorldItem): boolean {
-		let ret: boolean = false;
-		//p.y++;
 		if (p.bottomI() + 1 === Util.bottomEdge)
-			ret = true;
+			return true;
 		else
-			for (const w of GameState.ws) {
-				let shouldBreak: boolean = false;
-				if (p !== w && p.bottomI() + 1 == w.topI() &&
+			for (const w of GameState.ws)
+				if (p.bottomI() + 1 === w.topI() &&
+					w.getClassName() !== "coin" &&
 					w.getClassName() !== "teleporter" &&
 					w.getClassName() !== "deadbadguy" &&
-					w.getClassName() !== "buzzsaw") {
-					const collisions = Util.isCollidingWith(p);
-					for (const c of collisions)
-						if (c === w) {
-							ret = true;
-							shouldBreak = true;
-							break;
-						}
-				}
-				if (shouldBreak)
-					break;
-			}
-		//p.y--;
-		return ret;
+					w.getClassName() !== "buzzsaw" &&
+					Util.areColliding(p, w))
+						return true;
+		return false;
 	}
 	// client-callable fn
 	static registerKeys(): void {
@@ -1161,36 +1241,48 @@ class Util {
 	}
 	// client-callable fn
 	static isBetween(a: number, b: number, c: number): boolean {
-		if (b > c) {
+		if (DEBUG_MODE && b > c) {
+			console.log("isbetween is swapping b and c");
 			const temp = b;
 			b = c;
 			c = temp;
 		}
 		return b <= a && a <= c;
 	}
-	// client-callable fn
-	static isCollidingWith(v: WorldItem): Array<WorldItem> {
+	static areColliding(v: WorldItem, w: WorldItem) {
 		v.x--;
 		v.y--;
 		v.width += 2;
 		v.height += 2;
-		let ret: Array<WorldItem> = new Array<WorldItem>();
-		for (const w of GameState.ws)
-			if (v !== w && UtilHelpers.isCollidingHoriz(v, w) &&
-				UtilHelpers.isCollidingVert(v, w) &&
-				!(v.bottomI() === w.topI() && v.leftI() === w.rightI()) &&
-				!(v.bottomI() === w.topI() && v.rightI() === w.leftI()) &&
-				!(v.topI() === w.bottomI() && v.leftI() === w.rightI()) &&
-				!(v.topI() === w.bottomI() && v.rightI() === w.leftI())
-				)
-				ret.push(w);
+		const ret = true && (
+			v !== w && UtilHelpers.isCollidingHoriz(v, w) &&
+			UtilHelpers.isCollidingVert(v, w) &&
+			!(v.bottomI() === w.topI() && v.leftI() === w.rightI()) &&
+			!(v.bottomI() === w.topI() && v.rightI() === w.leftI()) &&
+			!(v.topI() === w.bottomI() && v.leftI() === w.rightI()) &&
+			!(v.topI() === w.bottomI() && v.rightI() === w.leftI())
+		);
 		v.x++;
 		v.y++;
 		v.width -= 2;
 		v.height -= 2;
 		return ret;
 	}
-	static isCollidingWithCircular(v: WorldItem): Array<WorldItem> {
+	// client-callable fn
+	static isCollidingWith(v: WorldItem): Array<WorldItem> {
+		let ret: Array<WorldItem> = new Array<WorldItem>();
+		//for (const w of GameState.ws)
+		let loIndex = Math.trunc(v.leftI() / 200);
+		let hiIndex = Math.trunc(v.rightI() / 200);
+		for (let i = loIndex; i <= hiIndex; i++)
+			for (const w of GameState.divvy.get(i))
+				if (Util.areColliding(v, w))
+					ret.push(w);
+		return ret;
+	}
+	// client callable fn
+	static isCollidingWithCircular(v: WorldItem, approx: boolean = false):
+		Array<WorldItem> {
 		if (v.width !== v.height)
 			throw new Error("iscollidingwithcircular cant use unsquare rect");
 		const vCenter: Point = {x: v.leftI() + v.width / 2,
@@ -1212,9 +1304,9 @@ class Util {
 				const distBetweenVW = Math.sqrt(
 					Math.pow(vCenter.x - wCenter.x, 2) +  // x2-x1
 					Math.pow(vCenter.y - wCenter.y, 2));  // y2-y1
-				const vRadius = v.width / 2;
-				const wRadius = w.width / 2;
-				if (distBetweenVW <= vRadius + wRadius) {
+				const vRadius = v.width / 2 + (approx ? (v.width / 8) : 0);
+				const wRadius = w.width / 2 + (approx ? (v.width / 8) : 0);
+				if (Math.round(distBetweenVW) <= vRadius + wRadius) {
 					ret.push(w);
 					break;
 				}
@@ -1239,7 +1331,7 @@ class Util {
 		window.requestAnimationFrame(Util.paintLoop);
 	}
 	static drawBorders(): void {
-		document.body.style.margin = "unset";
+		//document.body.style.margin = "unset";
 		
 		let div = document.createElement("div");
 		div.style.left = Util.leftEdge + "px";
@@ -1309,7 +1401,7 @@ class Init {
 		GameState.currLevel = Init.World1;
 		new Brick(100, 400, 75, 10, "violet");
 		new Brick(200, 330, 100, 10, "skyblue", "brick", true);
-		new Brick(230, 345, 10, 10, "violet", "brick", true);
+		new Brick(230, 345, 10, 10, "violet", "brick", false);
 		new Player(10, 10, sz);
 		new Brick(300, 450, 10, 10, "violet");
 		new BadGuy(400, 400, 50, 50, "red", "right", true);

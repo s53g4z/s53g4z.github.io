@@ -115,6 +115,7 @@
 body {
   font-family: monospace;
   font-size: x-large;
+  margin: unset;
 }
 
 #GUIncoins, #GUInlives {
