@@ -435,10 +435,9 @@ class Laser extends AliveWorldItem {
                 c.die(true);
             else if (c.getClassName() === "brick" && c.destructible)
                 c.die();
-        let nCollisions = collisions.length;
-        for (let i = 0; i < collisions.length; i++)
-            if (collisions[i].getClassName() === "laser" ||
-                collisions[i].getClassName() === "turret")
+        let nCollisions = collisions.size;
+        for (const c of collisions)
+            if (c.getClassName() === "laser" || c.getClassName() === "turret")
                 nCollisions--; // allow lasers to overlap lasers and turrets
         return nCollisions;
     }
@@ -1143,14 +1142,14 @@ class Util {
     }
     // client-callable fn
     static isCollidingWith(v) {
-        let ret = new Array();
+        let ret = new Set();
         //for (const w of GameState.ws)
         let loIndex = Math.trunc(v.leftI() / 200);
         let hiIndex = Math.trunc(v.rightI() / 200);
         for (let i = loIndex; i <= hiIndex; i++)
             for (const w of GameState.divvy.get(i))
                 if (Util.areColliding(v, w))
-                    ret.push(w);
+                    ret.add(w);
         return ret;
     }
     // client callable fn

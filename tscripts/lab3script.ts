@@ -216,7 +216,7 @@ class Platform extends Brick {
 			for (const w of GameState.ws) {
 				if (w.bottomI() + 1 !== base.topI())
 					continue;  // if can't collide with base, continue
-				const collisions: Array<WorldItem> =
+				const collisions: Set<WorldItem> =
 					Util.isCollidingWith(base);
 				for (const c of collisions)  // \/ if colliding with \/
 					if (c === w && c.getClassName() !== "buzzsaw") {
@@ -478,13 +478,13 @@ class Laser extends AliveWorldItem {
 		this.div.style.top = this.y + "px";
 		this.div.style.opacity = "1";
 		
-		const collisions = Util.isCollidingWith(this);
+		const collisions: Set<WorldItem> = Util.isCollidingWith(this);
 		for (const c of collisions)
 			if (c.getClassName() === "turret")
 				this.div.style.opacity = "0";
 	}
 	processCollisions(): number {
-		const collisions = Util.isCollidingWith(this);
+		const collisions: Set<WorldItem> = Util.isCollidingWith(this);
 		for (const c of collisions)
 			if (c === GameState.getPlayer() || c.getClassName() === "badguy")
 				c.die();
@@ -493,10 +493,9 @@ class Laser extends AliveWorldItem {
 			else if (c.getClassName() === "brick" && (c as Brick).destructible)
 				c.die();
 		
-		let nCollisions = collisions.length;
-		for (let i = 0; i < collisions.length; i++)
-			if (collisions[i].getClassName() === "laser" ||
-				collisions[i].getClassName() === "turret")
+		let nCollisions = collisions.size;
+		for (const c of collisions)
+			if (c.getClassName() === "laser" || c.getClassName() === "turret")
 				nCollisions--;  // allow lasers to overlap lasers and turrets
 		return nCollisions;
 	}
@@ -656,7 +655,7 @@ class Bomb extends BadGuy {
 		}
 		this.div.className = "explodingbomb";
 		
-		const colls: Array<WorldItem> = Util.isCollidingWith(this);
+		const colls: Set<WorldItem> = Util.isCollidingWith(this);
 		for (const c of colls) {
 			if (c.getClassName() === "coin" || c.getClassName() === "turret" ||
 				c.getClassName() === "badguy" || c.getClassName() === "bomb" ||
@@ -849,7 +848,7 @@ class Player extends AliveWorldItem {
 				w.getClassName() === "bomb" ||
 				w.getClassName() === "tickingbomb") &&
 				this.bottomI() + 1 === w.topI()) {
-				const collisions: Array<WorldItem> = Util.isCollidingWith(this);
+				const collisions: Set<WorldItem> = Util.isCollidingWith(this);
 				for (const c of collisions)
 					if (c === w)
 						return true;
@@ -1187,7 +1186,7 @@ class Util {
 				xMoveOkay = false;  // already moved maximum amount
 			if (Math.abs(w.y - origWLocation.y) >= Math.abs(w.accel))
 				yMoveOkay = false;  // already moved maximum amount
-			const collisions: Array<WorldItem> = Util.isCollidingWith(w);
+			const collisions: Set<WorldItem> = Util.isCollidingWith(w);
 			for (const c of collisions) {
 				if (!xMoveOkay && !yMoveOkay)
 					break;  // both turned false, so nothing to do
@@ -1269,15 +1268,15 @@ class Util {
 		return ret;
 	}
 	// client-callable fn
-	static isCollidingWith(v: WorldItem): Array<WorldItem> {
-		let ret: Array<WorldItem> = new Array<WorldItem>();
+	static isCollidingWith(v: WorldItem): Set<WorldItem> {
+		let ret: Set<WorldItem> = new Set<WorldItem>();
 		//for (const w of GameState.ws)
 		let loIndex = Math.trunc(v.leftI() / 200);
 		let hiIndex = Math.trunc(v.rightI() / 200);
 		for (let i = loIndex; i <= hiIndex; i++)
 			for (const w of GameState.divvy.get(i))
 				if (Util.areColliding(v, w))
-					ret.push(w);
+					ret.add(w);
 		return ret;
 	}
 	// client callable fn
