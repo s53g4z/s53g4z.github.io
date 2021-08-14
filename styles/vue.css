@@ -1,0 +1,32 @@
+body {
+  margin: 0px;
+  font-family: Arial, Helvetica;
+  width: 100vw;
+  height: 100vh;
+  user-select: none;
+  overflow: clip;
+}
+
+#the_div {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.target {
+  width: 100%;
+  height: 100%;
+  background-color: skyblue;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.cps {
+  width: max-content;
+  height: max-content;
+  color: white;
+  font-size: 160px;
+  text-align: center;
+}
