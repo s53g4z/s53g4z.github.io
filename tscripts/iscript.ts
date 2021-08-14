@@ -5,10 +5,12 @@
 function fillLeft(result, newCard) {
 	let left = newCard.querySelector(".left");
 	let longtitle = result.collectionName;
-	let title = longtitle.substring(0, 100);
-	if (longtitle.length > 100)
-		title += "..."
-	left.querySelector(".title").innerText = title;
+	if (longtitle) {  // the API changed; longtitle is no longer guaranteed
+		let title = longtitle.substring(0, 100);
+		if (longtitle.length > 100)
+			title += "..."
+		left.querySelector(".title").innerText = title;
+	}
 	let img = document.createElement("img");
 	img.src = result.artworkUrl100;
 	left.querySelector(".icon").appendChild(img);

@@ -5,7 +5,6 @@ function vue() {
 	const comp = {
 		data() {
 			return {
-				oldClicks: -1,
 				clicks: 0,
 				startTime: 0,
 				cps: 0,
@@ -16,7 +15,7 @@ function vue() {
 			currTimeInSeconds() {
 				return new Date().valueOf() / 1000;
 			},
-			reset() {
+			reset() {  // based on heuristic only
 				this.clicks = 0;
 				this.startTime = this.currTimeInSeconds();
 				setTimeout(this.reset, 4000 + Math.random() * 2000);

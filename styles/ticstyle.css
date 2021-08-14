@@ -1,15 +1,37 @@
 body {
 	margin: 5px;
-	overflow: hidden;
-	font-family: "Arial";
+	overflow: unset;
+	font-family: Arial;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	user-select: none;
 }
 
-div {
-	width: 20vh;
-	height: 20vh;
-	display: inline-block;
-	border: 5px solid black;
+#msg {
 	margin: 0px;
-	padding: 10px;
-	text-align: center;
+	font-size: 5vh;
+}
+
+#container {
+	font-family: monospace;
+	display: grid;
+	grid-template-columns: 1fr 1r 1fr;
+	grid-template-rows: 1fr 1fr 1fr;
+	width: min(75vw, 75vh);
+	height: min(75vw, 75vh);
+}
+
+span {
+	border: 1px solid black;
+	background-color: white;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: 10vh;
+}
+
+#box0, #box1, #box2 {
+	grid-row: 1;
 }
