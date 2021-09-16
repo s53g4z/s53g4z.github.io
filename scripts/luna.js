@@ -122,7 +122,7 @@ class StartMenu extends Common {
         return ret;
     }
     myPCfn() {
-        new aWindow(this.taskbar, Util.rand() % Util.rightEdge, Util.rand() % Util.bottomEdge, 400, 300, "My Computer", ["C:\\", "D:\\"]);
+        new aWindow(this.taskbar, -1, -1, 400, 300, "My Computer", ["C:\\", "D:\\"]);
     }
     runfn() {
         const bw = new BasicWindow(this.taskbar, 25, Util.bottomEdge - 50 - 200, 400, 200, "Run");
@@ -140,14 +140,15 @@ class StartMenu extends Common {
         });
         bw.getDiv().appendChild(inputdiv);
     }
+    ctrlpnlfn() {
+        const awin = new aWindow(this.taskbar, -1, -1, 400, 400, "Control Panel", ["Add/Remove Programs", "Display", "System",
+            "Users"]);
+    }
     mydocfn() {
-        const aw = new aWindow(this.taskbar, 25, 25, 400, 400, "My Documents", ["My Pictures", "My Videos", "new folder", "new folder 1"]);
+        const awin = new aWindow(this.taskbar, -1, -1, 400, 300, "My Documents", ["old files", "Word Templates", "setup.exe"]);
     }
     mypicfn() {
-        const aw = new aWindow(this.taskbar, 25, 25, 400, 400, "My Pictures", ["image1.jpg", "image2.bmp", "flowers.jpeg", "cone.gif"]);
-    }
-    ctrlpanelfn() {
-        const aw = new aWindow(this.taskbar, 25, 25, 400, 400, "Control Panel", ["Accessibility", "Add/Remove Programs", "Game Controllers", "System"]);
+        const awin = new aWindow(this.taskbar, -1, -1, 400, 300, "My Pictures", ["SPHERE.gif", "photo.jpg"]);
     }
     populateRightChild() {
         this.mydocfn = this.mydocfn.bind(this);
@@ -156,8 +157,8 @@ class StartMenu extends Common {
         new StartMenuRightTag(this, "My Pictures", this.yellowIcon(), this.mypicfn);
         this.myPCfn = this.myPCfn.bind(this);
         new StartMenuRightTag(this, "My Computer", this.cyanPCIcon(), this.myPCfn);
-        this.ctrlpanelfn = this.ctrlpanelfn.bind(this);
-        new StartMenuRightTag(this, "Control Panel", this.cyanPCIcon(), this.ctrlpanelfn);
+        this.ctrlpnlfn = this.ctrlpnlfn.bind(this);
+        new StartMenuRightTag(this, "Control Panel", this.cyanPCIcon(), this.ctrlpnlfn);
         this.runfn = this.runfn.bind(this);
         new StartMenuRightTag(this, "Run", this.cyanPCIcon(), this.runfn);
     }
@@ -270,10 +271,14 @@ class Task extends Common {
         super();
         this.title = title;
         this.date = date;
-        this.taskdiv = document.createElement("div");
-        this.taskdiv.className = "taskdiv";
+        this.taskdiv = Util.newDiv("taskdiv");
         this.taskdiv.innerText = this.title;
         taskbar.addTask(this);
+        this.taskdiv.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            awindow.minimize();
+        });
         this.taskdiv.addEventListener("contextmenu", (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -450,19 +455,49 @@ class BasicWindow extends Common {
     constructor(taskbar, x, y, width, height, title = "") {
         super();
         this.maximized = false;
+        x = this.calculateX(x, width);
+        y = this.calculateY(y, height);
         this.setX(x);
         this.setY(y);
         this.setWidth(width);
         this.setHeight(height);
         this.div.className = "basicwindow";
         document.body.appendChild(this.div);
+        this.div.addEventListener("mousedown", () => {
+            for (const win of Util.getAllWindows()) {
+                win.getDiv().style.zIndex = "";
+            }
+            this.div.style.zIndex = "1";
+        });
         const titlebar = new Titlebar(this, title);
         this.taskbar = taskbar;
         this.task = new Task(this.taskbar, this, title, new Date().getTime());
+        Util.addWindow(this);
+    }
+    // Calculate a proper x coordinate for the window to be created.
+    calculateX(x, width) {
+        if (width >= Util.rightEdge) // width of window > width of desktop
+            return 0;
+        if (x < 0)
+            x = Util.rand();
+        if (x + width + 3 * 2 > Util.rightEdge)
+            return Util.rightEdge - width - 3 * 2;
+        return x;
+    }
+    // Calculate a proper y coordinate for the window to be created.
+    calculateY(y, height) {
+        if (height >= Util.bottomEdge - 32) // taskbar is 32 pixels tall
+            return 0;
+        if (y < 0)
+            y = Util.rand();
+        if (y + height + 3 * 2 > Util.bottomEdge - 32)
+            return Util.bottomEdge - 32 - height - 3 * 2;
+        return y;
     }
     close() {
         Common.prototype.close.call(this);
         this.taskbar.delTask(this.task);
+        Util.delWindow(this);
     }
     maximize() {
         if (!this.maximized) {
@@ -484,6 +519,12 @@ class BasicWindow extends Common {
             this.maximized = false;
         }
     }
+    minimize() {
+        if (this.getDiv().style.display !== "none")
+            this.getDiv().style.display = "none";
+        else
+            this.getDiv().style.display = "";
+    }
 }
 class aWindow extends BasicWindow {
     constructor(taskbar, x, y, width, height, title = "", wintiles) {
@@ -500,6 +541,7 @@ class MenubarItem extends Common {
         this.getDiv().className = "menubaritem";
         this.getDiv().innerText = name;
         this.getDiv().addEventListener("click", (e) => {
+            //Util.closeAllContextMenus();
             const bounding = parent.getDiv().getBoundingClientRect();
             new ContextMenu(bounding.left, bounding.top + 24, items); // 24px
             e.stopPropagation();
@@ -552,6 +594,7 @@ class Ifram extends Common {
         ifram.name = "_blank";
         ifram.referrerPolicy = "no-referrer";
         ifram.sandbox.add("allow-scripts");
+        ifram.sandbox.add("allow-forms");
         ifram.src = "https://en.wikipedia.org";
         parent.getDiv().appendChild(ifram);
     }
@@ -559,9 +602,27 @@ class Ifram extends Common {
 class Addrbar extends Common {
     constructor(parent) {
         super();
+        this.lsites = new Array();
+        this.rsites = new Array();
         this.getDiv().className = "addrbar";
         const left = new RoundButton(this, "leftbutton", "<-");
+        left.getDiv().addEventListener("click", (e) => {
+            const ifram = this.getIfram(parent);
+            if (this.lsites.length < 1 || !ifram)
+                return;
+            const site = this.lsites.pop();
+            this.rsites.push(ifram.src); // place current site in the (->)
+            ifram.src = site;
+        });
         const right = new RoundButton(this, "rightbutton", "->");
+        right.getDiv().addEventListener("click", (e) => {
+            const ifram = this.getIfram(parent);
+            if (this.rsites.length < 1 || !ifram)
+                return;
+            const site = this.rsites.pop();
+            this.lsites.push(ifram.src);
+            ifram.src = site;
+        });
         const urlbar = new UrlBar(this);
         const go = new RoundButton(this, "gobutton", "Go");
         go.getDiv().addEventListener("click", (e) => {
@@ -575,12 +636,24 @@ class Addrbar extends Common {
         });
         parent.getDiv().appendChild(this.getDiv());
     }
-    navigate(parent) {
+    getIfram(parent) {
         const huntForIfram = parent.getDiv().getElementsByClassName("eyeframe");
         if (huntForIfram.length < 1)
-            return;
+            return null;
         const ifram = huntForIfram[0];
+        return ifram;
+    }
+    navigate(parent) {
+        const ifram = this.getIfram(parent);
+        if (!ifram)
+            return;
         const theinput = document.getElementsByTagName("input")[0];
+        if (theinput.value.indexOf("https://") != 0 &&
+            theinput.value.indexOf("http://") != 0)
+            theinput.value = "https://" + theinput.value;
+        this.lsites.push(ifram.src); // save current site to (<-)
+        while (this.rsites.length > 0)
+            this.rsites.pop(); // navigation resets (->)
         ifram.src = theinput.value;
     }
 }
@@ -638,14 +711,21 @@ class Titlebar extends Common {
         });
         this.getDiv().appendChild(maximize);
     }
+    createButtonMinimize() {
+        const minimize = Util.newDiv("minimizebutton");
+        minimize.innerText = "-";
+        minimize.addEventListener("click", () => {
+            this.parent.minimize();
+        });
+        this.getDiv().appendChild(minimize);
+    }
     createButtons() {
         const spacer = document.createElement("div");
         spacer.className = "titlebarspacer";
         this.getDiv().appendChild(spacer);
+        this.createButtonMinimize();
         this.createButtonMaximize();
         this.createButtonClose();
-        //let minimize = document.createElement("div");
-        //minimize.innerText = "_";
     }
 }
 class bootOS {
@@ -675,7 +755,21 @@ class bootOS {
             }
         });
         window.addEventListener("resize", (e) => {
-            console.log(e);
+            Util.closeAllContextMenus();
+            Util.bottomEdge = window.innerHeight;
+            Util.rightEdge = window.innerWidth;
+            for (const win of Util.getAllWindows()) {
+                if (!win.maximized) { // if offscreen, move onscreen
+                    if (win.getX() + win.getWidth() > Util.rightEdge)
+                        win.setX(0);
+                    if (win.getY() + win.getHeight() > Util.bottomEdge)
+                        win.setY(0);
+                }
+                else { // if maximized, resize to fit new desktop resolution
+                    win.setWidth(Util.rightEdge - 3 * 2); // border width
+                    win.setHeight(Util.bottomEdge - 32 - 3 * 2); // taskbar height
+                }
+            }
         });
     }
 }
@@ -692,12 +786,23 @@ class Util {
         }
     }
     static rand() {
-        return Math.random() * Util.rightEdge;
+        return Math.random() * Math.max(Util.rightEdge, Util.bottomEdge);
     }
     static newDiv(classname) {
         const ret = document.createElement("div");
         ret.className = classname;
         return ret;
+    }
+    static getAllWindows() {
+        return Util.windows;
+    }
+    static addWindow(awin) {
+        Util.windows.add(awin);
+    }
+    static delWindow(awin) {
+        const rv = Util.windows.delete(awin);
+        if (!rv)
+            throw new Error("could not remove window from Util.windows");
     }
 }
 Util.mInterested = new Array();
@@ -705,6 +810,7 @@ Util.bottomEdge = window.innerHeight;
 Util.topEdge = 0;
 Util.leftEdge = 0;
 Util.rightEdge = window.innerWidth;
+Util.windows = new Set(); // list of all open windows
 (() => {
     new bootOS();
 })();

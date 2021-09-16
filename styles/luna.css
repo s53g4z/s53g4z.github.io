@@ -102,7 +102,7 @@ body {
   background-color: red;
 }
 
-.maximizebutton, .closebutton {
+.maximizebutton, .closebutton, .minimizebutton {
   color: white;
   height: min-content;
   font-family: monospace;
@@ -177,7 +177,7 @@ body {
 }
 
 #taskbar {
-  z-index: 1;
+  z-index: 2;
   margin-top: auto;
   width: 100vw;
   height: 32px;
@@ -189,7 +189,7 @@ body {
 }
 
 .contextmenu {
-  z-index: 1;
+  z-index: 2;
   position: absolute;
   background-color: white;
   width: 160px;
@@ -197,7 +197,7 @@ body {
 }
 
 .contextmenuitem {
-  z-index: 1;
+  z-index: 2;
   border: 1px solid black;
   padding: 5px;
 }
